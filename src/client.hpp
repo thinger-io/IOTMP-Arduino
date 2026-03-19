@@ -27,18 +27,29 @@
 // Serial debug logging — must be defined before including core headers
 #ifdef THINGER_SERIAL_DEBUG
 #include <Arduino.h>
+#include <cstdarg>
+
+inline void _thinger_log(const char* level, const char* fmt, ...) {
+    char buf[128];
+    va_list args;
+    va_start(args, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, args);
+    va_end(args);
+    Serial.print(level);
+    Serial.println(buf);
+}
 
 #ifndef THINGER_LOG_ERROR
-#define THINGER_LOG_ERROR(fmt, ...)   Serial.printf("[E][IOTMP] " fmt "\n", ##__VA_ARGS__)
+#define THINGER_LOG_ERROR(fmt, ...)   _thinger_log("[E][IOTMP] ", fmt, ##__VA_ARGS__)
 #endif
 #ifndef THINGER_LOG_WARNING
-#define THINGER_LOG_WARNING(fmt, ...) Serial.printf("[W][IOTMP] " fmt "\n", ##__VA_ARGS__)
+#define THINGER_LOG_WARNING(fmt, ...) _thinger_log("[W][IOTMP] ", fmt, ##__VA_ARGS__)
 #endif
 #ifndef THINGER_LOG_INFO
-#define THINGER_LOG_INFO(fmt, ...)    Serial.printf("[I][IOTMP] " fmt "\n", ##__VA_ARGS__)
+#define THINGER_LOG_INFO(fmt, ...)    _thinger_log("[I][IOTMP] ", fmt, ##__VA_ARGS__)
 #endif
 #ifndef THINGER_LOG_DEBUG
-#define THINGER_LOG_DEBUG(fmt, ...)   Serial.printf("[D][IOTMP] " fmt "\n", ##__VA_ARGS__)
+#define THINGER_LOG_DEBUG(fmt, ...)   _thinger_log("[D][IOTMP] ", fmt, ##__VA_ARGS__)
 #endif
 
 #endif // THINGER_SERIAL_DEBUG
