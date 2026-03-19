@@ -139,8 +139,6 @@ jobs:
         run: pip install platformio
 
       - name: Build (${{ matrix.name }})
-        continue-on-error: true
-        id: build
         run: |
           mkdir -p /tmp/build/src /tmp/build/lib
 
@@ -164,12 +162,4 @@ jobs:
           lib_deps = arduino-libraries/Ethernet
           EOF
 
-          cd /tmp/build && pio run 2>&1 | tail -5
-
-      - name: Result
-        run: |
-          if [ "${{ steps.build.outcome }}" = "success" ]; then
-            echo "✅ ${{ matrix.name }}: BUILD OK"
-          else
-            echo "❌ ${{ matrix.name }}: BUILD FAILED"
-          fi
+          cd /tmp/build && pio run
