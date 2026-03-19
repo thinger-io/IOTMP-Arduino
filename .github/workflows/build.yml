@@ -37,7 +37,10 @@ jobs:
         run: |
           mkdir -p /tmp/build/src /tmp/build/lib
 
-          cp ${{ matrix.example }} /tmp/build/src/main.cpp
+          # Copy example and its companion files (arduino_secrets.h, etc.)
+          example_dir=$(dirname ${{ matrix.example }})
+          cp ${example_dir}/* /tmp/build/src/
+          mv /tmp/build/src/*.ino /tmp/build/src/main.cpp
 
           # Link our library
           ln -s $GITHUB_WORKSPACE /tmp/build/lib/iotmp-arduino
