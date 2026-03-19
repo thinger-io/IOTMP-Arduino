@@ -32,12 +32,19 @@
 #include "client.hpp"
 #include "compat.hpp"
 
+#ifdef THINGER_FREE_RTOS
+#include "ThingerESP32FreeRTOS.h"
+#endif
+
 namespace thinger::iotmp {
 
     class ThingerESP32 : public arduino_client {
     public:
         ThingerESP32(const char* user, const char* device, const char* credential)
             : arduino_client(wifi_client_, user, device, credential)
+#ifdef THINGER_FREE_RTOS
+            , rtos_(*this)
+#endif
         {
             // Use TLS port by default
             port_ = 25206;
@@ -63,10 +70,28 @@ namespace thinger::iotmp {
             arduino_client::handle();
         }
 
+#ifdef THINGER_FREE_RTOS
+        bool start(unsigned core = ARDUINO_RUNNING_CORE, size_t stack_size = 8192) {
+            return rtos_.start(core, stack_size);
+        }
+
+        bool stop() {
+            return rtos_.stop();
+        }
+
+        bool is_running() {
+            return rtos_.is_running();
+        }
+#endif
+
     private:
         WiFiClientSecure wifi_client_;
         const char* wifi_ssid_     = nullptr;
         const char* wifi_password_ = nullptr;
+
+#ifdef THINGER_FREE_RTOS
+        ThingerESP32FreeRTOS rtos_;
+#endif
 
         bool wifi_connected() {
             return WiFi.status() == WL_CONNECTED;
