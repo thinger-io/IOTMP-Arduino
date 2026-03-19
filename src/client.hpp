@@ -111,6 +111,25 @@ namespace thinger::iotmp {
     };
 
     // ----------------------------------------------------------------
+    // Connection state enum — compatible with classic library
+    // ----------------------------------------------------------------
+    enum THINGER_STATE {
+        NETWORK_CONNECTING,
+        NETWORK_CONNECTED,
+        NETWORK_CONNECT_ERROR,
+        SOCKET_CONNECTING,
+        SOCKET_CONNECTED,
+        SOCKET_CONNECTION_ERROR,
+        SOCKET_DISCONNECTED,
+        SOCKET_TIMEOUT,
+        SOCKET_ERROR,
+        THINGER_AUTHENTICATING,
+        THINGER_AUTHENTICATED,
+        THINGER_AUTH_FAILED,
+        THINGER_STOP_REQUEST
+    };
+
+    // ----------------------------------------------------------------
     // Arduino IOTMP client.
     //
     // Takes an Arduino Client& for transport.  Call handle() from the
@@ -126,6 +145,12 @@ namespace thinger::iotmp {
 
         virtual ~arduino_client() {
             free_output_buffer();
+        }
+
+        // ----- State listener ----------------------------------------
+
+        void set_state_listener(std::function<void(THINGER_STATE)> listener) {
+            state_listener_ = std::move(listener);
         }
 
         // ----- Resource registration --------------------------------
@@ -293,6 +318,9 @@ namespace thinger::iotmp {
         enum state_t { DISCONNECTED, AUTHENTICATED };
         state_t state_ = DISCONNECTED;
 
+        // State listener
+        std::function<void(THINGER_STATE)> state_listener_;
+
         // Resources
         std::map<std::string, iotmp_resource> resources_;
 
@@ -442,18 +470,26 @@ namespace thinger::iotmp {
 
         // ----- Connection -------------------------------------------
 
+        void notify_state(THINGER_STATE state) {
+            if(state_listener_) state_listener_(state);
+        }
+
         bool connect_socket() {
+            notify_state(SOCKET_CONNECTING);
             THINGER_LOG_INFO("Connecting to %s:%u", host_, port_);
             bool ok = client_.connect(host_, port_);
             if(ok) {
                 THINGER_LOG_INFO("Connected");
+                notify_state(SOCKET_CONNECTED);
             } else {
                 THINGER_LOG_ERROR("Connection failed");
+                notify_state(SOCKET_CONNECTION_ERROR);
             }
             return ok;
         }
 
         bool authenticate() {
+            notify_state(THINGER_AUTHENTICATING);
             THINGER_LOG_INFO("Authenticating as %s@%s", device_id_, username_);
 
             iotmp_message msg(message::CONNECT);
@@ -466,6 +502,7 @@ namespace thinger::iotmp {
 
             if(!write_message(msg)) {
                 THINGER_LOG_ERROR("Failed to send CONNECT");
+                notify_state(THINGER_AUTH_FAILED);
                 return false;
             }
 
@@ -473,14 +510,17 @@ namespace thinger::iotmp {
             iotmp_message response(message::RESERVED);
             if(!read_message(response)) {
                 THINGER_LOG_ERROR("No CONNECT response");
+                notify_state(THINGER_AUTH_FAILED);
                 return false;
             }
 
             bool ok = response.get_message_type() == message::OK;
             if(ok) {
                 THINGER_LOG_INFO("Authenticated!");
+                notify_state(THINGER_AUTHENTICATED);
             } else {
                 THINGER_LOG_ERROR("Authentication failed");
+                notify_state(THINGER_AUTH_FAILED);
             }
             return ok;
         }
@@ -489,8 +529,8 @@ namespace thinger::iotmp {
             THINGER_LOG_INFO("Disconnected");
             client_.stop();
             state_ = DISCONNECTED;
+            notify_state(SOCKET_DISCONNECTED);
             streams_.clear();
-            // Reset stream IDs on all resources
             for(auto& [name, res] : resources_) {
                 res.set_stream_id(0);
             }
