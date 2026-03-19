@@ -24,6 +24,25 @@
 #ifndef THINGER_IOTMP_ARDUINO_CLIENT_HPP
 #define THINGER_IOTMP_ARDUINO_CLIENT_HPP
 
+// Serial debug logging — must be defined before including core headers
+#ifdef THINGER_SERIAL_DEBUG
+#include <Arduino.h>
+
+#ifndef THINGER_LOG_ERROR
+#define THINGER_LOG_ERROR(fmt, ...)   Serial.printf("[E][IOTMP] " fmt "\n", ##__VA_ARGS__)
+#endif
+#ifndef THINGER_LOG_WARNING
+#define THINGER_LOG_WARNING(fmt, ...) Serial.printf("[W][IOTMP] " fmt "\n", ##__VA_ARGS__)
+#endif
+#ifndef THINGER_LOG_INFO
+#define THINGER_LOG_INFO(fmt, ...)    Serial.printf("[I][IOTMP] " fmt "\n", ##__VA_ARGS__)
+#endif
+#ifndef THINGER_LOG_DEBUG
+#define THINGER_LOG_DEBUG(fmt, ...)   Serial.printf("[D][IOTMP] " fmt "\n", ##__VA_ARGS__)
+#endif
+
+#endif // THINGER_SERIAL_DEBUG
+
 #include <Arduino.h>
 #include <Client.h>
 
@@ -112,6 +131,7 @@ namespace thinger::iotmp {
                 case DISCONNECTED:
                     // Respect reconnect back-off
                     if(now - last_connection_attempt_ < RECONNECT_MS) return;
+                    THINGER_LOG_INFO("Reconnecting in %lu ms", RECONNECT_MS);
                     last_connection_attempt_ = now;
                     if(!connect_socket()) return;
                     state_ = SOCKET_CONNECTING;
@@ -139,9 +159,11 @@ namespace thinger::iotmp {
                         iotmp_message msg(message::RESERVED);
                         if(read_message(msg)) {
                             if(msg.get_message_type() == message::OK) {
+                                THINGER_LOG_INFO("Authenticated");
                                 state_ = AUTHENTICATED;
                                 last_keepalive_ = millis();
                             } else {
+                                THINGER_LOG_ERROR("Authentication failed");
                                 disconnect();
                                 return;
                             }
@@ -432,10 +454,14 @@ namespace thinger::iotmp {
         }
 
         void send_message(iotmp_message& msg) {
+            if(msg.get_message_type() != message::STREAM_DATA) {
+                THINGER_LOG_DEBUG("TX: %s (stream=%u)", msg.message_type_str(), msg.get_stream_id());
+            }
             write_message(msg);
         }
 
         void send_keepalive() {
+            THINGER_LOG_DEBUG("Keep-alive sent");
             std::string encoded = encode_message(message::KEEP_ALIVE);
             io_write(encoded.data(), encoded.size(), true);
         }
@@ -443,10 +469,19 @@ namespace thinger::iotmp {
         // ----- Connection -------------------------------------------
 
         bool connect_socket() {
-            return client_.connect(host_, port_);
+            THINGER_LOG_INFO("Connecting to %s:%u", host_, port_);
+            bool ok = client_.connect(host_, port_);
+            if(ok) {
+                THINGER_LOG_INFO("Connected");
+            } else {
+                THINGER_LOG_ERROR("Connection failed");
+            }
+            return ok;
         }
 
         bool authenticate() {
+            THINGER_LOG_INFO("Authenticating as %s@%s", device_id_, username_);
+
             iotmp_message msg(message::CONNECT);
             msg.set_random_stream_id();
 
@@ -468,6 +503,7 @@ namespace thinger::iotmp {
         }
 
         void disconnect() {
+            THINGER_LOG_INFO("Disconnected");
             client_.stop();
             state_ = DISCONNECTED;
             streams_.clear();
@@ -480,6 +516,10 @@ namespace thinger::iotmp {
         // ----- Message handling -------------------------------------
 
         void handle_message(iotmp_message& msg) {
+            if(msg.get_message_type() != message::STREAM_DATA) {
+                THINGER_LOG_DEBUG("RX: %s (stream=%u)", msg.message_type_str(), msg.get_stream_id());
+            }
+
             switch(msg.get_message_type()) {
                 case message::RUN:
                     handle_resource_request(msg);
@@ -624,6 +664,8 @@ namespace thinger::iotmp {
 
             streams_[stream_id] = cfg;
 
+            THINGER_LOG_DEBUG("Stream started: %s (id=%u)", cfg.resource_name ? cfg.resource_name : "?", stream_id);
+
             // Send OK
             iotmp_message response(stream_id, message::OK);
             send_message(response);
@@ -634,6 +676,7 @@ namespace thinger::iotmp {
 
         void handle_stop_stream(iotmp_message& request) {
             uint16_t stream_id = request.get_stream_id();
+            THINGER_LOG_DEBUG("Stream stopped (id=%u)", stream_id);
 
             // Find and clean up the stream
             auto it = streams_.find(stream_id);
