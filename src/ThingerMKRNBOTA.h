@@ -82,4 +82,6 @@ namespace thinger::iotmp {
 
 } // namespace thinger::iotmp
 
+using thinger::iotmp::ThingerMKRNBOTA;
+
 #endif // THINGER_IOTMP_ARDUINO_MKRNBOTA_H

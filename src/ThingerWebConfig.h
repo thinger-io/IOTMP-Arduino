@@ -24,6 +24,7 @@
 #ifndef THINGER_IOTMP_ARDUINO_WEBCONFIG_H
 #define THINGER_IOTMP_ARDUINO_WEBCONFIG_H
 
+#include "client.hpp"
 #include <DNSServer.h>
 #include <WiFiManager.h>
 
@@ -98,5 +99,7 @@ namespace thinger::iotmp {
     };
 
 } // namespace thinger::iotmp
+
+using thinger::iotmp::ThingerWebConfig;
 
 #endif // THINGER_IOTMP_ARDUINO_WEBCONFIG_H

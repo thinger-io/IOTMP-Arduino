@@ -102,4 +102,6 @@ namespace thinger::iotmp {
 
 } // namespace thinger::iotmp
 
+using thinger::iotmp::ThingerMbedOTA;
+
 #endif // THINGER_IOTMP_ARDUINO_MBEDOTA_H

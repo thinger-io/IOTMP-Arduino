@@ -67,7 +67,7 @@ namespace thinger::iotmp {
                     return;
                 }
 
-                firmware_size_   = in["size"];
+                firmware_size_   = in["size"].get<size_t>();
                 firmware_offset_ = 0;
                 running_ = true;
 
@@ -136,5 +136,7 @@ namespace thinger::iotmp {
     };
 
 } // namespace thinger::iotmp
+
+using thinger::iotmp::ThingerOTA;
 
 #endif // THINGER_IOTMP_ARDUINO_OTA_H

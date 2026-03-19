@@ -71,4 +71,6 @@ namespace thinger::iotmp {
 
 } // namespace thinger::iotmp
 
+using thinger::iotmp::ThingerWiFiNINAOTA;
+
 #endif // THINGER_IOTMP_ARDUINO_WIFININA_OTA_H

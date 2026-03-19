@@ -90,6 +90,8 @@ namespace thinger::iotmp {
 
 } // namespace thinger::iotmp
 
+using thinger::iotmp::ThingerESP32WebConfig;
+
 #endif // ESP32
 
 #endif // THINGER_IOTMP_ARDUINO_ESP32_WEBCONFIG_H

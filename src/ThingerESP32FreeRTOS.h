@@ -90,6 +90,8 @@ namespace thinger::iotmp {
 
 } // namespace thinger::iotmp
 
+using thinger::iotmp::ThingerESP32FreeRTOS;
+
 #endif // ESP32
 
 #endif // THINGER_IOTMP_ARDUINO_ESP32_FREERTOS_H

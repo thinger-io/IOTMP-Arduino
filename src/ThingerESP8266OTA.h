@@ -79,6 +79,8 @@ namespace thinger::iotmp {
 
 } // namespace thinger::iotmp
 
+using thinger::iotmp::ThingerESP8266OTA;
+
 #endif // ESP8266
 
 #endif // THINGER_IOTMP_ARDUINO_ESP8266OTA_H

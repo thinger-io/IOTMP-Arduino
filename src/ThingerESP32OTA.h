@@ -84,6 +84,8 @@ namespace thinger::iotmp {
 
 } // namespace thinger::iotmp
 
+using thinger::iotmp::ThingerESP32OTA;
+
 #endif // ESP32
 
 #endif // THINGER_IOTMP_ARDUINO_ESP32OTA_H

@@ -147,4 +147,6 @@ namespace thinger::iotmp {
 
 } // namespace thinger::iotmp
 
+using thinger::iotmp::ThingerPortentaOTA;
+
 #endif // THINGER_IOTMP_ARDUINO_PORTENTA_OTA_H

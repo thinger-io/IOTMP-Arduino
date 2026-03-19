@@ -19,114 +19,140 @@ jobs:
             example: examples/ESP32/ESP32.ino
             board: esp32dev
             platform: espressif32
+            lib_deps: ""
           - name: ESP32Eth
             example: examples/ESP32/ESP32Eth/ESP32Eth.ino
             board: esp32dev
             platform: espressif32
+            lib_deps: ""
           - name: ESP32OTA
             example: examples/ESP32/ESP32OTA/ESP32OTA.ino
             board: esp32dev
             platform: espressif32
+            lib_deps: ""
           - name: ESP32RTOS
             example: examples/ESP32/ESP32RTOS/ESP32RTOS.ino
             board: esp32dev
             platform: espressif32
+            lib_deps: ""
           - name: ESP32WebConfig
             example: examples/ESP32/ESP32WebConfig/ESP32WebConfig.ino
             board: esp32dev
             platform: espressif32
+            lib_deps: "tzapu/WiFiManager"
 
           # ESP8266
           - name: ESP8266
             example: examples/ESP8266/ESP8266.ino
             board: esp12e
             platform: espressif8266
+            lib_deps: ""
           - name: ESP8266OTA
             example: examples/ESP8266/ESP8266OTA/ESP8266OTA.ino
             board: esp12e
             platform: espressif8266
+            lib_deps: ""
           - name: ESP8266SmartConfig
             example: examples/ESP8266/ESP8266SmartConfig/ESP8266SmartConfig.ino
             board: esp12e
             platform: espressif8266
+            lib_deps: ""
           - name: ESP8266WebConfig
             example: examples/ESP8266/ESP8266WebConfig/ESP8266WebConfig.ino
             board: esp12e
             platform: espressif8266
+            lib_deps: "tzapu/WiFiManager"
 
           # Arduino boards (STM32/SAMD/Renesas)
           - name: ArduinoEthernet
             example: examples/Arduino/ArduinoEthernet/ArduinoEthernet.ino
             board: nucleo_f767zi
             platform: ststm32
+            lib_deps: ""
           - name: ArduinoMKR1000
             example: examples/Arduino/ArduinoMKR1000/ArduinoMKR1000.ino
             board: mkr1000USB
             platform: atmelsam
+            lib_deps: "arduino-libraries/WiFi101"
           - name: ArduinoMKR1010
             example: examples/Arduino/ArduinoMKR1010/ArduinoMKR1010.ino
             board: mkrwifi1010
             platform: atmelsam
+            lib_deps: "arduino-libraries/WiFiNINA"
           - name: ArduinoNano33IOT
             example: examples/Arduino/ArduinoNano33IOT/ArduinoNano33IOT.ino
             board: nano_33_iot
             platform: atmelsam
+            lib_deps: "arduino-libraries/WiFiNINA\n  arduino-libraries/Arduino_LSM6DS3"
           - name: ArduinoR4Wifi
             example: examples/Arduino/ArduinoR4Wifi/ArduinoR4Wifi.ino
             board: uno_r4_wifi
             platform: renesas-ra
+            lib_deps: ""
           - name: ArduinoPortentaH7
             example: examples/Arduino/ArduinoPortentaH7/ArduinoPortentaH7.ino
             board: portenta_h7_m7
             platform: ststm32
+            lib_deps: ""
           - name: ArduinoPortentaH7Ethernet
             example: examples/Arduino/ArduinoPortentaH7Ethernet/ArduinoPortentaH7Ethernet.ino
             board: portenta_h7_m7
             platform: ststm32
+            lib_deps: ""
           - name: ArduinoNanoRP2040
             example: examples/Arduino/ArduinoNanoRP2040/ArduinoNanoRP2040.ino
             board: nanorp2040connect
             platform: raspberrypi
+            lib_deps: ""
           - name: ArduinoOptaWiFi
             example: examples/Arduino/ArduinoOptaWiFi/ArduinoOptaWiFi.ino
             board: opta
             platform: ststm32
+            lib_deps: ""
           - name: ArduinoOptaEthernet
             example: examples/Arduino/ArduinoOptaEthernet/ArduinoOptaEthernet.ino
             board: opta
             platform: ststm32
+            lib_deps: ""
           - name: ArduinoGSM1400
             example: examples/Arduino/ArduinoGSM1400/ArduinoGSM1400.ino
             board: mkrgsm1400
             platform: atmelsam
+            lib_deps: "arduino-libraries/MKRGSM"
           - name: ArduinoMKRNB1500
             example: examples/Arduino/ArduinoMKRNB1500/ArduinoMKRNB1500.ino
             board: mkrnb1500
             platform: atmelsam
+            lib_deps: "arduino-libraries/MKRNB"
           - name: ArduinoWifi
             example: examples/Arduino/ArduinoWifi/ArduinoWifi.ino
             board: mkr1000USB
             platform: atmelsam
+            lib_deps: "arduino-libraries/WiFi101"
           - name: ArduinoTinyGSM
             example: examples/Arduino/ArduinoTinyGSM/ArduinoTinyGSM.ino
             board: esp32dev
             platform: espressif32
+            lib_deps: "vshymanskyy/TinyGSM"
 
           # Ethernet
           - name: Ethernet
             example: examples/Ethernet/Ethernet.ino
             board: nucleo_f767zi
             platform: ststm32
+            lib_deps: ""
 
           # Legacy
           - name: ArduinoENC28J60
             example: examples/Arduino/ArduinoENC28J60/ArduinoENC28J60.ino
             board: nucleo_f767zi
             platform: ststm32
+            lib_deps: "UIPEthernet/UIPEthernet"
           - name: SonoffTouch
             example: examples/Sonoff/SonoffTouch/SonoffTouch.ino
             board: esp12e
             platform: espressif8266
+            lib_deps: "tzapu/WiFiManager"
 
     steps:
       - uses: actions/checkout@v4
@@ -159,7 +185,9 @@ jobs:
           framework = arduino
           build_flags = -std=gnu++17
           build_unflags = -std=gnu++11
-          lib_deps = arduino-libraries/Ethernet
+          lib_deps =
+            arduino-libraries/Ethernet
+            ${{ matrix.lib_deps }}
           EOF
 
           cd /tmp/build && pio run

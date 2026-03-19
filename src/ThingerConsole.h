@@ -207,4 +207,7 @@ namespace thinger::iotmp {
 
 } // namespace thinger::iotmp
 
+using thinger::iotmp::ThingerCommand;
+using thinger::iotmp::ThingerConsole;
+
 #endif // THINGER_IOTMP_ARDUINO_CONSOLE_H

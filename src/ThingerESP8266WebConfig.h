@@ -88,6 +88,8 @@ namespace thinger::iotmp {
 
 } // namespace thinger::iotmp
 
+using thinger::iotmp::ThingerESP8266WebConfig;
+
 #endif // ESP8266
 
 #endif // THINGER_IOTMP_ARDUINO_ESP8266_WEBCONFIG_H
