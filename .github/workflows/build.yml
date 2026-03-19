@@ -1,0 +1,59 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: ESP32
+            board: esp32dev
+            platform: espressif32
+            example: examples/ESP32/ESP32.ino
+          - name: ESP8266
+            board: esp12e
+            platform: espressif8266
+            example: examples/ESP8266/ESP8266.ino
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install PlatformIO
+        run: pip install platformio
+
+      - name: Prepare build
+        run: |
+          mkdir -p /tmp/build/src /tmp/build/lib
+
+          cp ${{ matrix.example }} /tmp/build/src/main.cpp
+
+          # Link our library
+          ln -s $GITHUB_WORKSPACE /tmp/build/lib/iotmp-arduino
+
+          # Clone iotmp-embedded core
+          git clone --depth 1 https://github.com/thinger-io/IOTMP-Embedded.git /tmp/build/lib/iotmp-embedded
+
+          # Create platformio.ini
+          cat > /tmp/build/platformio.ini << EOF
+          [env:build]
+          platform = ${{ matrix.platform }}
+          board = ${{ matrix.board }}
+          framework = arduino
+          build_flags = -std=gnu++17
+          build_unflags = -std=gnu++11
+          EOF
+
+      - name: Build (${{ matrix.name }})
+        run: cd /tmp/build && pio run

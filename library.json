@@ -2,7 +2,7 @@
     "name": "IOTMP-Arduino",
     "version": "1.0.0",
     "description": "Thinger.io IOTMP client library for Arduino platforms",
-    "keywords": "iot, thinger, iotmp, esp32, esp8266, ethernet",
+    "keywords": "iot, thinger, iotmp, esp32, esp8266, ethernet, gsm, cellular, tinygsm",
     "repository": {
         "type": "git",
         "url": "https://github.com/thinger-io/iotmp-arduino.git"
