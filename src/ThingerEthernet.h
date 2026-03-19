@@ -37,7 +37,7 @@ namespace thinger::iotmp {
             : arduino_client(ethernet_client_, user, device, credential)
         {
             // Plain TCP port (no TLS on standard Ethernet shields)
-            port_ = 25200;
+            port_ = 25204;
         }
 
         // Override handle() to maintain DHCP lease

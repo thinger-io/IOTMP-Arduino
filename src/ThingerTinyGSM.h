@@ -39,7 +39,7 @@ namespace thinger::iotmp {
               gsm_client_(modem_)
         {
             // Plain TCP port (most GSM modems lack TLS support)
-            port_ = 25200;
+            port_ = 25204;
         }
 
         // Set APN credentials for GPRS data connection (original API)

@@ -55,15 +55,17 @@ namespace thinger::iotmp {
         const char* wifi_password_ = nullptr;
 
         bool wifi_connected() {
-            return (WiFi.status() == WL_CONNECTED) && !(WiFi.localIP() == (IPAddress)INADDR_NONE);
+            return WiFi.status() == WL_CONNECTED && WiFi.localIP() != IPAddress(0, 0, 0, 0);
         }
 
         bool connect_wifi() {
             if(wifi_ssid_ != nullptr) {
+                THINGER_LOG_INFO("Connecting to WiFi: %s", wifi_ssid_);
                 WiFi.begin((char*)wifi_ssid_, (char*)wifi_password_);
             }
 #if defined(ESP8266) || defined(ESP32)
             else {
+                THINGER_LOG_INFO("Connecting to WiFi (saved credentials)");
                 WiFi.begin();
             }
 #else
@@ -71,7 +73,19 @@ namespace thinger::iotmp {
                 return false;
             }
 #endif
-            return WiFi.status() == WL_CONNECTED;
+
+            // Wait for connection with timeout
+            unsigned long start = millis();
+            while(WiFi.status() != WL_CONNECTED) {
+                if(millis() - start > 30000) {
+                    THINGER_LOG_ERROR("WiFi connection timeout");
+                    return false;
+                }
+                delay(1); // yield to WiFi task
+            }
+
+            THINGER_LOG_INFO("WiFi connected, IP: %s", WiFi.localIP().toString().c_str());
+            return true;
         }
     };
 

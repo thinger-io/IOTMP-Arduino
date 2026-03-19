@@ -45,7 +45,7 @@ namespace thinger::iotmp {
               cc3000_(cc3000csPin, cc3000irqPin, cc3000vbatPin, SPI_CLOCK_DIVIDER)
         {
             // CC3000 does not support TLS
-            port_ = 25200;
+            port_ = 25204;
         }
 
         void add_wifi(char* ssid, char* password) {

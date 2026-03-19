@@ -221,9 +221,9 @@ namespace thinger::iotmp {
 
         // ----- Configuration ----------------------------------------
 
-        void set_host(const char* host, uint16_t port = 25200) {
+        void set_host(const char* host, uint16_t port = 0) {
             host_ = host;
-            port_ = port;
+            if(port != 0) port_ = port;
         }
 
         // ----- Server API -------------------------------------------
@@ -325,7 +325,7 @@ namespace thinger::iotmp {
         const char* device_id_;
         const char* credential_;
         const char* host_ = "iot.thinger.io";
-        uint16_t port_ = 25200;
+        uint16_t port_ = 25204;
 
         // Connection state
         enum state_t { DISCONNECTED, SOCKET_CONNECTING, AUTHENTICATING, AUTHENTICATED };

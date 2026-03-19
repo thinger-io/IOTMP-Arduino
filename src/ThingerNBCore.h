@@ -75,7 +75,7 @@ namespace thinger::iotmp {
               modem_(SerialAT),
               client_(modem_)
         {
-            port_ = 25200;
+            port_ = 25204;
         }
 
         bool init_modem(bool reset_modem = false) {

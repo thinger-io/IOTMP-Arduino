@@ -63,7 +63,7 @@ namespace thinger::iotmp {
         bool use_led_;
 
         bool wifi_connected() {
-            return WiFi.status() == WL_CONNECTED && !(WiFi.localIP() == INADDR_NONE);
+            return WiFi.status() == WL_CONNECTED && WiFi.localIP() != IPAddress(0, 0, 0, 0);
         }
 
         bool connect_wifi() {
@@ -73,27 +73,30 @@ namespace thinger::iotmp {
 
             // try to connect to the last known WiFi network
             if(WiFi.SSID() != NULL) {
+                THINGER_LOG_INFO("Connecting to saved WiFi: %s", WiFi.SSID().c_str());
                 WiFi.begin(WiFi.SSID().c_str(), WiFi.psk().c_str());
                 unsigned long wifi_timeout = millis();
                 while(WiFi.status() != WL_CONNECTED && (millis() - wifi_timeout < WIFI_CONNECTION_TIMEOUT_MS)) {
-                    yield();
+                    delay(1); // yield to WiFi task
                 }
             }
 
             // if not connected, start SmartConfig
             if(WiFi.status() != WL_CONNECTED) {
+                THINGER_LOG_INFO("Starting SmartConfig...");
                 unsigned long wifi_timeout = millis();
                 WiFi.stopSmartConfig();
                 WiFi.beginSmartConfig();
                 while(!WiFi.smartConfigDone()) {
                     if(millis() - wifi_timeout > SMART_CONFIG_WAIT_MS) {
+                        THINGER_LOG_ERROR("SmartConfig timeout");
                         return false;
                     }
                     if(use_led_) {
                         digitalWrite(BUILTIN_LED, !digitalRead(BUILTIN_LED));
                         delay(500);
                     } else {
-                        yield();
+                        delay(1); // yield to WiFi task
                     }
                 }
             }
@@ -102,11 +105,14 @@ namespace thinger::iotmp {
             unsigned long wifi_timeout = millis();
             while(WiFi.status() != WL_CONNECTED) {
                 if(millis() - wifi_timeout > WIFI_CONNECTION_TIMEOUT_MS) {
+                    THINGER_LOG_ERROR("WiFi connection timeout");
                     WiFi.disconnect();
                     return false;
                 }
-                yield();
+                delay(1); // yield to WiFi task
             }
+
+            THINGER_LOG_INFO("WiFi connected, IP: %s", WiFi.localIP().toString().c_str());
 
             // blink to notify connection
             if(use_led_) {

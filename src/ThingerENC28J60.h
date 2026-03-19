@@ -37,7 +37,7 @@ namespace thinger::iotmp {
             : arduino_client(client_, user, device, credential)
         {
             // ENC28J60 does not support TLS
-            port_ = 25200;
+            port_ = 25204;
         }
 
     private:

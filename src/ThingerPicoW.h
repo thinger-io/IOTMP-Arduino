@@ -37,7 +37,7 @@ namespace thinger::iotmp {
             : arduino_client(wifi_client_, user, device, credential)
         {
             // Plain TCP port (no TLS by default on Pico W)
-            port_ = 25200;
+            port_ = 25204;
         }
 
         // Store WiFi credentials
@@ -61,21 +61,28 @@ namespace thinger::iotmp {
         const char* wifi_password_ = nullptr;
 
         bool wifi_connected() {
-            return WiFi.status() == WL_CONNECTED;
+            return WiFi.status() == WL_CONNECTED && WiFi.localIP() != IPAddress(0, 0, 0, 0);
         }
 
         bool connect_wifi() {
             if(!wifi_ssid_) return false;
 
-            if(WiFi.status() != WL_CONNECTED) {
-                WiFi.mode(WIFI_STA);
-                WiFi.begin(wifi_ssid_, wifi_password_);
+            THINGER_LOG_INFO("Connecting to WiFi: %s", wifi_ssid_);
+            WiFi.mode(WIFI_STA);
+            WiFi.begin(wifi_ssid_, wifi_password_);
 
-                // Non-blocking: we just kick off the connection and
-                // return.  handle() will be called again from loop()
-                // and will re-check wifi_connected().
+            // Wait for connection with timeout
+            unsigned long start = millis();
+            while(WiFi.status() != WL_CONNECTED) {
+                if(millis() - start > 30000) {
+                    THINGER_LOG_ERROR("WiFi connection timeout");
+                    return false;
+                }
+                delay(1); // yield to WiFi task
             }
-            return WiFi.status() == WL_CONNECTED;
+
+            THINGER_LOG_INFO("WiFi connected, IP: %s", WiFi.localIP().toString().c_str());
+            return true;
         }
     };
 

@@ -39,7 +39,7 @@ namespace thinger::iotmp {
             : arduino_client(client_, user, device, credential)
         {
             // LinkIt ONE does not support TLS
-            port_ = 25200;
+            port_ = 25204;
         }
 
         void add_wifi(const char* ssid, const char* password) {
@@ -66,16 +66,32 @@ namespace thinger::iotmp {
 
         bool connect_wifi() {
             if(!wifi_ssid_) return false;
-            unsigned long wifi_timeout = millis();
+
+            THINGER_LOG_INFO("Connecting to WiFi: %s", wifi_ssid_);
             LWiFi.begin();
-            while(LWiFi.connect((char*)wifi_ssid_, LWiFiLoginInfo(LWIFI_WPA, wifi_password_)) <= 0) {
-                if(millis() - wifi_timeout > 30000) return false;
-                delay(100);
+            if(LWiFi.connect((char*)wifi_ssid_, LWiFiLoginInfo(LWIFI_WPA, wifi_password_)) <= 0) {
+                // Retry with timeout
+                unsigned long start = millis();
+                while(LWiFi.connect((char*)wifi_ssid_, LWiFiLoginInfo(LWIFI_WPA, wifi_password_)) <= 0) {
+                    if(millis() - start > 30000) {
+                        THINGER_LOG_ERROR("WiFi connection timeout");
+                        return false;
+                    }
+                    delay(1);
+                }
             }
-            wifi_timeout = millis();
+
+            // Wait for IP address
+            unsigned long start = millis();
             while(LWiFi.localIP() == INADDR_NONE) {
-                if(millis() - wifi_timeout > 30000) return false;
+                if(millis() - start > 30000) {
+                    THINGER_LOG_ERROR("WiFi IP assignment timeout");
+                    return false;
+                }
+                delay(1);
             }
+
+            THINGER_LOG_INFO("WiFi connected");
             return true;
         }
     };

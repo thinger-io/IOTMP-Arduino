@@ -38,7 +38,7 @@ namespace thinger::iotmp {
             : arduino_client(client_, user, device, credential)
         {
             // LinkIt ONE GPRS does not support TLS
-            port_ = 25200;
+            port_ = 25204;
         }
 
         void set_apn(const char* apn, const char* user = nullptr, const char* password = nullptr) {

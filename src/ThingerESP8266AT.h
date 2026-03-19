@@ -40,7 +40,7 @@ namespace thinger::iotmp {
               gsm_client_(serial_)
         {
             // No TLS support via AT modem
-            port_ = 25200;
+            port_ = 25204;
         }
 
         void add_wifi(const char* ssid, const char* password = nullptr) {

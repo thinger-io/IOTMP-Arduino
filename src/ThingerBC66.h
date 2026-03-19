@@ -43,7 +43,7 @@ namespace thinger::iotmp {
 #ifndef _DISABLE_TLS_
             port_ = 25206;
 #else
-            port_ = 25200;
+            port_ = 25204;
 #endif
         }
 
