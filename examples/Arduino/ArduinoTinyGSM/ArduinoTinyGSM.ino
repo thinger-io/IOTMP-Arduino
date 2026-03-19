@@ -15,7 +15,7 @@
 #include "arduino_secrets.h"
 
 // Emulate Serial1 on pins 10/11 if HW is not present (use interrupt pin in RX for better performance)
-#ifndef HAVE_HWSERIAL1
+#if !defined(HAVE_HWSERIAL1) && !defined(ESP32)
 
 #include "SoftwareSerial.h"
 SoftwareSerial Serial1(10, 11); // RX, TX

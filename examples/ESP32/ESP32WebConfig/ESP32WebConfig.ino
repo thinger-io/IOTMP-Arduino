@@ -10,7 +10,7 @@ void setup() {
   // open serial for debugging
   Serial.begin(115200);
 
-  pinMode(LED_BUILTIN, OUTPUT);
+  pinMode(2, OUTPUT);
 
   // resource output example (i.e. reading a sensor value)
   thing["millis"] >> outputValue(millis());

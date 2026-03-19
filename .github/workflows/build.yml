@@ -99,11 +99,14 @@ jobs:
             board: portenta_h7_m7
             platform: ststm32
             lib_deps: ""
+            skip_ethernet_lib: true
           - name: ArduinoNanoRP2040
             example: examples/Arduino/ArduinoNanoRP2040/ArduinoNanoRP2040.ino
             board: nanorp2040connect
             platform: raspberrypi
-            lib_deps: ""
+            lib_deps: "arduino-libraries/WiFiNINA"
+            extra_build_flags: "-DARDUINO_NANO_RP2040_CONNECT"
+            lib_ignore: "WiFi"
           - name: ArduinoOptaWiFi
             example: examples/Arduino/ArduinoOptaWiFi/ArduinoOptaWiFi.ino
             board: opta
@@ -114,6 +117,7 @@ jobs:
             board: opta
             platform: ststm32
             lib_deps: ""
+            skip_ethernet_lib: true
           - name: ArduinoGSM1400
             example: examples/Arduino/ArduinoGSM1400/ArduinoGSM1400.ino
             board: mkrgsm1400
@@ -155,7 +159,7 @@ jobs:
             lib_deps: "tzapu/WiFiManager"
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: actions/setup-python@v5
         with:
@@ -177,17 +181,35 @@ jobs:
           ln -s $GITHUB_WORKSPACE /tmp/build/lib/iotmp-arduino
           git clone --depth 1 https://github.com/thinger-io/IOTMP-Embedded.git /tmp/build/lib/iotmp-embedded
 
+          # Determine extra build flags
+          EXTRA_FLAGS="${{ matrix.extra_build_flags }}"
+          BUILD_FLAGS="-std=gnu++17${EXTRA_FLAGS:+ $EXTRA_FLAGS}"
+
+          # Determine lib_deps (conditionally include arduino-libraries/Ethernet)
+          ETHERNET_DEP=""
+          if [ "${{ matrix.skip_ethernet_lib }}" != "true" ]; then
+            ETHERNET_DEP="arduino-libraries/Ethernet"
+          fi
+
+          # Determine lib_ignore
+          LIB_IGNORE="${{ matrix.lib_ignore }}"
+
           # platformio.ini
           cat > /tmp/build/platformio.ini << EOF
           [env:build]
           platform = ${{ matrix.platform }}
           board = ${{ matrix.board }}
           framework = arduino
-          build_flags = -std=gnu++17
+          build_flags = ${BUILD_FLAGS}
           build_unflags = -std=gnu++11
           lib_deps =
-            arduino-libraries/Ethernet
+            ${ETHERNET_DEP}
             ${{ matrix.lib_deps }}
           EOF
+
+          # Add lib_ignore if specified
+          if [ -n "${LIB_IGNORE}" ]; then
+            echo "          lib_ignore = ${LIB_IGNORE}" >> /tmp/build/platformio.ini
+          fi
 
           cd /tmp/build && pio run

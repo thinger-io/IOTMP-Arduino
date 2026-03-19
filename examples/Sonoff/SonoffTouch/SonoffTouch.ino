@@ -23,6 +23,8 @@ Ticker ticker;
 
 unsigned long millisSinceChange = 0;
 
+void buttonChangeCallback();
+
 void toggleWiFiStatus(){
   digitalWrite(LED_PIN, !digitalRead(LED_PIN));
 }
