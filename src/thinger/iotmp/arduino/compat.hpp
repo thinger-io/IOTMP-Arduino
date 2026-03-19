@@ -70,7 +70,7 @@ inline void operator<<(iotmp_resource& res, std::function<void(input&, output&)>
     if(in.is_empty()) {                                                               \
         out = (bool)digitalRead(PIN);                                                 \
     } else {                                                                          \
-        digitalWrite(PIN, in.payload().get<bool>() ? HIGH : LOW);                     \
+        digitalWrite(PIN, (bool)in ? HIGH : LOW);                                     \
     }                                                                                 \
 }
 
