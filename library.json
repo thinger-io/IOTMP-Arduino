@@ -18,5 +18,9 @@
     "platforms": ["espressif32", "espressif8266", "atmelavr", "atmelsam", "ststm32"],
     "dependencies": {
         "thinger-io/iotmp-embedded": "*"
+    },
+    "build": {
+        "srcFilter": ["+<src/>"],
+        "includeDir": "src"
     }
 }
