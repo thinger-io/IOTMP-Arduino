@@ -43,9 +43,13 @@ inline void operator>>(iotmp_resource& res, std::function<void(output&)> fn) {
     res = std::move(fn);
 }
 
-// ---- operator<< (input resource) ----
+// ---- operator<< (input resource or input/output resource) ----
 
 inline void operator<<(iotmp_resource& res, std::function<void(input&)> fn) {
+    res = std::move(fn);
+}
+
+inline void operator<<(iotmp_resource& res, std::function<void(input&, output&)> fn) {
     res = std::move(fn);
 }
 
@@ -66,7 +70,7 @@ inline void operator<<(iotmp_resource& res, std::function<void(input&)> fn) {
     if(in.is_empty()) {                                                               \
         out = (bool)digitalRead(PIN);                                                 \
     } else {                                                                          \
-        digitalWrite(PIN, in.get<bool>() ? HIGH : LOW);                               \
+        digitalWrite(PIN, in.payload().get<bool>() ? HIGH : LOW);                     \
     }                                                                                 \
 }
 
