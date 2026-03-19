@@ -1,3 +1,4 @@
+#define THINGER_SERIAL_DEBUG
 // It may be required to define this according to your specific board
 // Example RMII LAN8720 (Olimex, etc.)
 #ifndef ETH_PHY_TYPE
@@ -15,8 +16,11 @@
 // define private server instance
 // #define THINGER_SERVER "acme.aws.thinger.io"
 
+
 #include <ThingerESP32Eth.h>
+
 #include <ThingerESP32OTA.h>
+
 #include "arduino_secrets.h"
 
 // initialize thinger instance

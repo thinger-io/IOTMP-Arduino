@@ -1,3 +1,4 @@
+#define THINGER_SERIAL_DEBUG
 // uncomment to use custom iot server
 //#define THINGER_SERVER "acme.thinger.io"
 
@@ -5,8 +6,11 @@
 // #define THINGER_NB_M2_CORE
 
 // Requires TinyGSM (https://github.com/vshymanskyy/TinyGSM)
+
 #include <ThingerNBCore.h>
+
 #include <ThingerESP32OTA.h>
+
 #include "arduino_secrets.h"
 
 ThingerNBCore thing(USERNAME, DEVICE_ID, DEVICE_CREDENTIAL);

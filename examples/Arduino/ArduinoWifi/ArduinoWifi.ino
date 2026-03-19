@@ -1,8 +1,12 @@
+#define THINGER_SERIAL_DEBUG
 #define THINGER_USE_STATIC_MEMORY
 #define THINGER_STATIC_MEMORY_SIZE 512
 
+
 #include <WiFi.h>
+
 #include <ThingerWifi.h>
+
 #include "arduino_secrets.h"
 
 ThingerWifi thing(USERNAME, DEVICE_ID, DEVICE_CREDENTIAL);

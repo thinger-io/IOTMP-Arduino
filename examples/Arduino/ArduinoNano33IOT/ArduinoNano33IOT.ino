@@ -1,8 +1,12 @@
+#define THINGER_SERIAL_DEBUG
 #include <ThingerWiFiNINA.h>
+
 #include <ThingerWiFiNINAOTA.h>
+
 #include "arduino_secrets.h"
 
 // requires library Arduino_LSM6DS3 for the imu readings
+
 #include <Arduino_LSM6DS3.h>
 
 // cannot connect? Update WiFiNiNA and add iot.thinger.io SSL Certificate

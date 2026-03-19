@@ -1,4 +1,6 @@
+#define THINGER_SERIAL_DEBUG
 #include <ThingerSmartConfig.h>
+
 #include "arduino_secrets.h"
 
 ThingerSmartConfig thing(USERNAME, DEVICE_ID, DEVICE_CREDENTIAL);

@@ -1,5 +1,8 @@
+#define THINGER_SERIAL_DEBUG
 // UIPEthernet for ENC28J60: https://github.com/ntruchsess/arduino_uip
+
 #include <ThingerENC28J60.h>
+
 #include "arduino_secrets.h"
 
 ThingerENC28J60 thing(USERNAME, DEVICE_ID, DEVICE_CREDENTIAL);

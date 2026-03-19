@@ -1,4 +1,6 @@
+#define THINGER_SERIAL_DEBUG
 #include <ThingerEthernet.h>
+
 #include "arduino_secrets.h"
 
 ThingerEthernet thing(USERNAME, DEVICE_ID, DEVICE_CREDENTIAL);

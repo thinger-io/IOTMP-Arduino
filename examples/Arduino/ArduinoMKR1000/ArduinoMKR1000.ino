@@ -1,4 +1,6 @@
+#define THINGER_SERIAL_DEBUG
 #include <ThingerWifi101.h>
+
 #include "arduino_secrets.h"
 
 // cannot connect? Update WiFi101 firmware and add iot.thinger.io SSL Certificate

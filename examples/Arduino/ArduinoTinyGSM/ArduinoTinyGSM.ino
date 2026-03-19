@@ -1,3 +1,4 @@
+#define THINGER_SERIAL_DEBUG
 // Select your modem:
 #define TINY_GSM_MODEM_SIM800
 //#define TINY_GSM_MODEM_SIM900
@@ -6,12 +7,16 @@
 //#define TINY_GSM_MODEM_M590
 
 // Can be installed from Library Manager or https://github.com/vshymanskyy/TinyGSM
+
 #include <TinyGsmClient.h>
+
 #include <ThingerTinyGSM.h>
+
 #include "arduino_secrets.h"
 
 // Emulate Serial1 on pins 10/11 if HW is not present (use interrupt pin in RX for better performance)
 #ifndef HAVE_HWSERIAL1
+
 #include "SoftwareSerial.h"
 SoftwareSerial Serial1(10, 11); // RX, TX
 #endif

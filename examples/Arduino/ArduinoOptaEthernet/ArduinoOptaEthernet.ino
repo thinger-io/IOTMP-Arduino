@@ -1,8 +1,12 @@
+#define THINGER_SERIAL_DEBUG
 // define private server instance
 #define THINGER_SERVER "acme.aws.thinger.io"
 
+
 #include <ThingerMbedEth.h>
+
 #include <ThingerPortentaOTA.h>
+
 #include "arduino_secrets.h"
 
 ThingerMbedEth thing(USERNAME, DEVICE_ID, DEVICE_CREDENTIAL);

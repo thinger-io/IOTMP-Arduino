@@ -1,5 +1,8 @@
+#define THINGER_SERIAL_DEBUG
 #include <ThingerMbed.h>
+
 #include <ThingerMbedOTA.h>
+
 #include "arduino_secrets.h"
 
 ThingerMbed thing(USERNAME, DEVICE_ID, DEVICE_CREDENTIAL);

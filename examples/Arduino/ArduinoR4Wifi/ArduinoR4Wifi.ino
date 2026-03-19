@@ -1,4 +1,6 @@
+#define THINGER_SERIAL_DEBUG
 #include <ThingerR4WiFi.h>
+
 #include "arduino_secrets.h"
 
 ThingerR4WiFi thing(USERNAME, DEVICE_ID, DEVICE_CREDENTIAL);

@@ -1,5 +1,7 @@
+#define THINGER_SERIAL_DEBUG
 // Requires WifiManager from Library Manager or https://github.com/tzapu/WiFiManager
 // At least version 2.0 (available on master)
+
 #include <ThingerESP32WebConfig.h>
 
 ThingerESP32WebConfig thing;

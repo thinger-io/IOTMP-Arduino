@@ -1,4 +1,6 @@
+#define THINGER_SERIAL_DEBUG
 #include <ThingerMKRGSM.h>
+
 #include "arduino_secrets.h"
 
 ThingerMKRGSM thing(USERNAME, DEVICE_ID, DEVICE_CREDENTIAL);

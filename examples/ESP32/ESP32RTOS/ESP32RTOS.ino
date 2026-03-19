@@ -1,6 +1,9 @@
+#define THINGER_SERIAL_DEBUG
 #define THINGER_FREE_RTOS
 
+
 #include <ThingerESP32.h>
+
 #include "arduino_secrets.h"
 
 ThingerESP32 thing(USERNAME, DEVICE_ID, DEVICE_CREDENTIAL);

@@ -1,5 +1,8 @@
+#define THINGER_SERIAL_DEBUG
 #include <ThingerESP8266.h>
+
 #include <ThingerESP8266OTA.h>
+
 #include "arduino_secrets.h"
 
 ThingerESP8266 thing(USERNAME, DEVICE_ID, DEVICE_CREDENTIAL);

@@ -1,5 +1,8 @@
+#define THINGER_SERIAL_DEBUG
 #include <ThingerMKRNB.h>
+
 #include <ThingerMKRNBOTA.h>
+
 #include "arduino_secrets.h"
 
 ThingerMKRNB thing(USERNAME, DEVICE_ID, DEVICE_CREDENTIAL);

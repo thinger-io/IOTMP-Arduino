@@ -1,4 +1,6 @@
+#define THINGER_SERIAL_DEBUG
 // Requires WifiManager from Library Manager or https://github.com/tzapu/WiFiManager
+
 #include <ThingerESP8266WebConfig.h>
 
 ThingerESP8266WebConfig thing;

@@ -1,4 +1,6 @@
+#define THINGER_SERIAL_DEBUG
 #include <ThingerCC3000.h>
+
 #include "arduino_secrets.h"
 
 ThingerCC3000 thing(USERNAME, DEVICE_ID, DEVICE_CREDENTIAL);

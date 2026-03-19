@@ -1,5 +1,8 @@
+#define THINGER_SERIAL_DEBUG
 #include <ThingerWiFiNINA.h>
+
 #include <ThingerWiFiNINAOTA.h>
+
 #include "arduino_secrets.h"
 
 // cannot connect? Update WiFiNiNA and add iot.thinger.io SSL Certificate
