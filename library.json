@@ -16,13 +16,7 @@
     "license": "MIT",
     "frameworks": "arduino",
     "platforms": ["espressif32", "espressif8266", "atmelavr", "atmelsam", "ststm32"],
-    "dependencies": {
-        "iotmp-embedded": {
-            "owner": "thinger-io",
-            "name": "IOTMP-Embedded",
-            "version": "https://github.com/thinger-io/IOTMP-Embedded.git"
-        }
-    },
+    "dependencies": {},
     "build": {
         "srcFilter": ["+<src/>"],
         "includeDir": "src"
