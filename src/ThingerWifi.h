@@ -84,7 +84,7 @@ namespace thinger::iotmp {
                 delay(1); // yield to WiFi task
             }
 
-            THINGER_LOG_INFO("WiFi connected, IP: %s", WiFi.localIP().toString().c_str());
+            THINGER_LOG_INFO("WiFi connected");
             return true;
         }
     };
