@@ -46,6 +46,7 @@
 #include <Arduino.h>
 #include <Client.h>
 
+#include "compat.hpp"
 #include <thinger/iotmp/iotmp.hpp>
 
 #include <map>

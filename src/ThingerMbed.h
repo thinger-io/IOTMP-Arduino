@@ -86,4 +86,6 @@ namespace thinger::iotmp {
 
 } // namespace thinger::iotmp
 
-#endif // THINGER_IOTMP_ARDUINO_MBED_H
+using thinger::iotmp::ThingerMbed;
+
+#endif

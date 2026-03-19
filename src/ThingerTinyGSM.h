@@ -27,6 +27,7 @@
 #include <TinyGsmClient.h>
 
 #include "client.hpp"
+#include "compat.hpp"
 
 namespace thinger::iotmp {
 
@@ -107,4 +108,6 @@ namespace thinger::iotmp {
 
 } // namespace thinger::iotmp
 
-#endif // THINGER_IOTMP_ARDUINO_TINYGSM_H
+using thinger::iotmp::ThingerTinyGSM;
+
+#endif

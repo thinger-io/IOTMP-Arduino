@@ -27,6 +27,7 @@
 #include <MKRNB.h>
 
 #include "client.hpp"
+#include "compat.hpp"
 
 #define NB_CONNECTION_TIMEOUT   120000
 #define GPRS_CONNECTION_TIMEOUT_NB 60000
@@ -107,4 +108,6 @@ namespace thinger::iotmp {
 
 } // namespace thinger::iotmp
 
-#endif // THINGER_IOTMP_ARDUINO_MKRNB_H
+using thinger::iotmp::ThingerMKRNB;
+
+#endif

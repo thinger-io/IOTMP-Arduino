@@ -30,6 +30,7 @@
 #include <WiFiClientSecure.h>
 
 #include "client.hpp"
+#include "compat.hpp"
 
 #define SMART_CONFIG_WAIT_MS 60000
 #define WIFI_CONNECTION_TIMEOUT_MS 15000
@@ -120,6 +121,8 @@ namespace thinger::iotmp {
     };
 
 } // namespace thinger::iotmp
+
+using thinger::iotmp::ThingerSmartConfig;
 
 #endif // ESP8266
 

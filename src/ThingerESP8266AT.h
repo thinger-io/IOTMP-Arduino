@@ -28,6 +28,7 @@
 #include <TinyGsmClient.h>
 
 #include "client.hpp"
+#include "compat.hpp"
 
 namespace thinger::iotmp {
 
@@ -72,4 +73,6 @@ namespace thinger::iotmp {
 
 } // namespace thinger::iotmp
 
-#endif // THINGER_IOTMP_ARDUINO_ESP8266AT_H
+using thinger::iotmp::ThingerESP8266AT;
+
+#endif

@@ -29,6 +29,7 @@
 #include <LWiFiClient.h>
 
 #include "client.hpp"
+#include "compat.hpp"
 
 namespace thinger::iotmp {
 
@@ -81,4 +82,6 @@ namespace thinger::iotmp {
 
 } // namespace thinger::iotmp
 
-#endif // THINGER_IOTMP_ARDUINO_LINKITONE_WIFI_H
+using thinger::iotmp::ThingerLinkItOneWifi;
+
+#endif

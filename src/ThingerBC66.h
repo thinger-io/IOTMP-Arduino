@@ -31,6 +31,7 @@
 #endif
 
 #include "client.hpp"
+#include "compat.hpp"
 
 namespace thinger::iotmp {
 
@@ -107,4 +108,6 @@ namespace thinger::iotmp {
 
 } // namespace thinger::iotmp
 
-#endif // THINGER_IOTMP_ARDUINO_BC66_H
+using thinger::iotmp::ThingerBC66;
+
+#endif

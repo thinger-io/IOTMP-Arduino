@@ -28,6 +28,7 @@
 #include <LGPRSClient.h>
 
 #include "client.hpp"
+#include "compat.hpp"
 
 namespace thinger::iotmp {
 
@@ -91,4 +92,6 @@ namespace thinger::iotmp {
 
 } // namespace thinger::iotmp
 
-#endif // THINGER_IOTMP_ARDUINO_LINKITONE_GPRS_H
+using thinger::iotmp::ThingerLinkItOneGPRS;
+
+#endif

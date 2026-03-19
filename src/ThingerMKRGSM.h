@@ -27,6 +27,7 @@
 #include <MKRGSM.h>
 
 #include "client.hpp"
+#include "compat.hpp"
 
 #define GPRS_CONNECTION_TIMEOUT 30000
 
@@ -109,4 +110,6 @@ namespace thinger::iotmp {
 
 } // namespace thinger::iotmp
 
-#endif // THINGER_IOTMP_ARDUINO_MKRGSM_H
+using thinger::iotmp::ThingerMKRGSM;
+
+#endif

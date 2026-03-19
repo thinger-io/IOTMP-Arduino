@@ -27,6 +27,7 @@
 #include <UIPEthernet.h>
 
 #include "client.hpp"
+#include "compat.hpp"
 
 namespace thinger::iotmp {
 
@@ -45,4 +46,6 @@ namespace thinger::iotmp {
 
 } // namespace thinger::iotmp
 
-#endif // THINGER_IOTMP_ARDUINO_ENC28J60_H
+using thinger::iotmp::ThingerENC28J60;
+
+#endif

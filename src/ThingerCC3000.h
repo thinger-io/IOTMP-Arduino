@@ -27,6 +27,7 @@
 #include <Adafruit_CC3000.h>
 
 #include "client.hpp"
+#include "compat.hpp"
 
 #define ADAFRUIT_CC3000_IRQ   3
 #define ADAFRUIT_CC3000_VBAT  5
@@ -96,4 +97,6 @@ namespace thinger::iotmp {
 
 } // namespace thinger::iotmp
 
-#endif // THINGER_IOTMP_ARDUINO_CC3000_H
+using thinger::iotmp::ThingerCC3000;
+
+#endif

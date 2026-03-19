@@ -51,4 +51,6 @@ namespace thinger::iotmp {
 
 } // namespace thinger::iotmp
 
-#endif // THINGER_IOTMP_ARDUINO_R4WIFI_H
+using thinger::iotmp::ThingerR4WiFi;
+
+#endif

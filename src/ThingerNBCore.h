@@ -36,6 +36,7 @@
 #include <TinyGsmClient.h>
 
 #include "client.hpp"
+#include "compat.hpp"
 
 #ifndef THINGER_NETWORK_REGISTER_TIMEOUT
 #define THINGER_NETWORK_REGISTER_TIMEOUT 300000
@@ -276,4 +277,6 @@ namespace thinger::iotmp {
 
 } // namespace thinger::iotmp
 
-#endif // THINGER_IOTMP_ARDUINO_NB_CORE_H
+using thinger::iotmp::ThingerNBCore;
+
+#endif

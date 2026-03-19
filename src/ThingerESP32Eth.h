@@ -36,6 +36,7 @@ typedef WiFiClientSecure ESP32EthClient;
 #endif
 
 #include "client.hpp"
+#include "compat.hpp"
 
 namespace thinger::iotmp {
 
@@ -110,6 +111,8 @@ namespace thinger::iotmp {
     };
 
 } // namespace thinger::iotmp
+
+using thinger::iotmp::ThingerESP32Eth;
 
 #endif // ESP32
 

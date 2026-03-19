@@ -30,6 +30,7 @@
 #include <WiFiClientSecure.h>
 
 #include "client.hpp"
+#include "compat.hpp"
 
 namespace thinger::iotmp {
 
@@ -87,6 +88,8 @@ namespace thinger::iotmp {
     };
 
 } // namespace thinger::iotmp
+
+using thinger::iotmp::ThingerESP32;
 
 #endif // ESP32
 

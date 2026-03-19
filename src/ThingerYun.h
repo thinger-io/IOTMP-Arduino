@@ -31,6 +31,7 @@
 #endif
 
 #include "client.hpp"
+#include "compat.hpp"
 
 namespace thinger::iotmp {
 
@@ -54,4 +55,6 @@ namespace thinger::iotmp {
 
 } // namespace thinger::iotmp
 
-#endif // THINGER_IOTMP_ARDUINO_YUN_H
+using thinger::iotmp::ThingerYun;
+
+#endif

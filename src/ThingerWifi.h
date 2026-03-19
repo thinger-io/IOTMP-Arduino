@@ -25,6 +25,7 @@
 #define THINGER_IOTMP_ARDUINO_WIFI_H
 
 #include "client.hpp"
+#include "compat.hpp"
 
 namespace thinger::iotmp {
 
