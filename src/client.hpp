@@ -139,55 +139,17 @@ namespace thinger::iotmp {
         virtual void handle() {
             unsigned long now = millis();
 
-            switch(state_) {
-                case DISCONNECTED:
-                    // Respect reconnect back-off
-                    if(now - last_connection_attempt_ < RECONNECT_MS) return;
-                    THINGER_LOG_INFO("Reconnecting in %lu ms", RECONNECT_MS);
-                    last_connection_attempt_ = now;
-                    if(!connect_socket()) return;
-                    state_ = SOCKET_CONNECTING;
-                    // fall through to authenticate immediately
-
-                case SOCKET_CONNECTING:
-                    if(!client_.connected()) {
-                        state_ = DISCONNECTED;
-                        return;
-                    }
-                    if(!authenticate()) {
-                        disconnect();
-                        return;
-                    }
-                    state_ = AUTHENTICATING;
+            if(state_ == DISCONNECTED) {
+                if(now - last_connection_attempt_ < RECONNECT_MS) return;
+                THINGER_LOG_INFO("Reconnecting in %lu ms", RECONNECT_MS);
+                last_connection_attempt_ = now;
+                if(!connect_socket()) return;
+                if(!authenticate()) {
+                    disconnect();
                     return;
-
-                case AUTHENTICATING:
-                    // Wait for the server OK/ERROR reply
-                    if(!client_.connected()) {
-                        disconnect();
-                        return;
-                    }
-                    if(client_.available()) {
-                        iotmp_message msg(message::RESERVED);
-                        if(read_message(msg)) {
-                            if(msg.get_message_type() == message::OK) {
-                                THINGER_LOG_INFO("Authenticated");
-                                state_ = AUTHENTICATED;
-                                last_keepalive_ = millis();
-                            } else {
-                                THINGER_LOG_ERROR("Authentication failed");
-                                disconnect();
-                                return;
-                            }
-                        } else {
-                            disconnect();
-                            return;
-                        }
-                    }
-                    return;
-
-                case AUTHENTICATED:
-                    break;
+                }
+                state_ = AUTHENTICATED;
+                last_keepalive_ = millis();
             }
 
             // --- We are AUTHENTICATED from here on ---
@@ -328,7 +290,7 @@ namespace thinger::iotmp {
         uint16_t port_ = 25204;
 
         // Connection state
-        enum state_t { DISCONNECTED, SOCKET_CONNECTING, AUTHENTICATING, AUTHENTICATED };
+        enum state_t { DISCONNECTED, AUTHENTICATED };
         state_t state_ = DISCONNECTED;
 
         // Resources
@@ -496,22 +458,31 @@ namespace thinger::iotmp {
 
             iotmp_message msg(message::CONNECT);
             msg.set_random_stream_id();
+            msg[message::field::PAYLOAD] = json_t::array({
+                json_t(username_),
+                json_t(device_id_),
+                json_t(credential_)
+            });
 
-            // Build connect payload
-            json_t& payload = msg[message::field::PAYLOAD];
-            payload[message::connect::PROTOCOL_VERSION] = 5;
-            payload[message::connect::KEEP_ALIVE] = static_cast<uint64_t>(KEEPALIVE_MS / 1000);
-            payload[message::connect::AUTH_TYPE] = 2; // token auth
+            if(!write_message(msg)) {
+                THINGER_LOG_ERROR("Failed to send CONNECT");
+                return false;
+            }
 
-            // Resource field carries [user, device, credential]
-            json_t& res = msg[message::field::RESOURCE];
-            res = json_t::array();
-            res.emplace_back(json_t(username_));
-            res.emplace_back(json_t(device_id_));
-            res.emplace_back(json_t(credential_));
+            // Wait for response
+            iotmp_message response(message::RESERVED);
+            if(!read_message(response)) {
+                THINGER_LOG_ERROR("No CONNECT response");
+                return false;
+            }
 
-            send_message(msg);
-            return true;
+            bool ok = response.get_message_type() == message::OK;
+            if(ok) {
+                THINGER_LOG_INFO("Authenticated!");
+            } else {
+                THINGER_LOG_ERROR("Authentication failed");
+            }
+            return ok;
         }
 
         void disconnect() {

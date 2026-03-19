@@ -27,7 +27,14 @@
 #ifdef ESP32
 
 #include <WiFi.h>
+
+#ifdef _DISABLE_TLS_
+#include <WiFiClient.h>
+typedef WiFiClient ESP32Client;
+#else
 #include <WiFiClientSecure.h>
+typedef WiFiClientSecure ESP32Client;
+#endif
 
 #include "client.hpp"
 #include "compat.hpp"
@@ -46,13 +53,12 @@ namespace thinger::iotmp {
             , rtos_(*this)
 #endif
         {
-            // Use TLS port by default
+#ifdef _DISABLE_TLS_
+            port_ = 25204;
+#else
             port_ = 25206;
-
-            // Accept any server certificate for now.
-            // Production deployments should pin a root CA with
-            // wifi_client_.setCACert(root_ca_pem) instead.
             wifi_client_.setInsecure();
+#endif
         }
 
         // Store WiFi credentials
@@ -85,7 +91,7 @@ namespace thinger::iotmp {
 #endif
 
     private:
-        WiFiClientSecure wifi_client_;
+        ESP32Client wifi_client_;
         const char* wifi_ssid_     = nullptr;
         const char* wifi_password_ = nullptr;
 
