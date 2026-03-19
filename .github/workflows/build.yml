@@ -87,7 +87,7 @@ jobs:
             lib_deps: ""
           - name: ArduinoGigaR1
             example: examples/Arduino/ArduinoGigaR1/ArduinoGigaR1.ino
-            board: giga_r1_wifi
+            board: giga_r1_m7
             platform: ststm32
             lib_deps: ""
           - name: ArduinoNano33BLE
@@ -133,11 +133,7 @@ jobs:
             lib_deps: "arduino-libraries/WiFiNINA"
             extra_build_flags: "-DARDUINO_NANO_RP2040_CONNECT"
             extra_config: "lib_ldf_mode = chain"
-          - name: ArduinoPicoW
-            example: examples/Arduino/ArduinoPicoW/ArduinoPicoW.ino
-            board: rpipicow
-            platform: raspberrypi
-            lib_deps: ""
+          # ArduinoPicoW: Pico W not yet in PlatformIO stable registry
           - name: ArduinoOptaWiFi
             example: examples/Arduino/ArduinoOptaWiFi/ArduinoOptaWiFi.ino
             board: opta
