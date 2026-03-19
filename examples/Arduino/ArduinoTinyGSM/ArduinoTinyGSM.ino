@@ -37,6 +37,9 @@ void setup() {
   // thing.setPIN(CARD_PIN);
 
   // resource input example (i.e, controlling a digitalPin);
+  #ifndef LED_BUILTIN
+  #define LED_BUILTIN 2
+  #endif
   pinMode(LED_BUILTIN, OUTPUT);
   thing["led"] << digitalPin(LED_BUILTIN);
 

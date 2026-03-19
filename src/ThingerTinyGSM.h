@@ -31,7 +31,6 @@
 
 namespace thinger::iotmp {
 
-    template<typename ModemType>
     class ThingerTinyGSM : public arduino_client {
     public:
         ThingerTinyGSM(const char* user, const char* device, const char* credential, Stream& serial)
@@ -43,20 +42,20 @@ namespace thinger::iotmp {
             port_ = 25200;
         }
 
-        // Set APN credentials for GPRS data connection
-        void add_apn(const char* apn, const char* apn_user = nullptr, const char* apn_password = nullptr) {
+        // Set APN credentials for GPRS data connection (original API)
+        void setAPN(const char* apn, const char* apn_user = nullptr, const char* apn_password = nullptr) {
             apn_          = apn;
             apn_user_     = apn_user;
             apn_password_ = apn_password;
         }
 
-        // Set SIM PIN if the card is locked
-        void set_pin(const char* pin) {
+        // Set SIM PIN if the card is locked (original API)
+        void setPIN(const char* pin) {
             pin_ = pin;
         }
 
         // Access the underlying modem object
-        ModemType& modem() { return modem_; }
+        TinyGsm& modem() { return modem_; }
 
         // Override handle() to manage cellular connectivity
         void handle() override {
@@ -68,7 +67,7 @@ namespace thinger::iotmp {
         }
 
     private:
-        ModemType modem_;
+        TinyGsm modem_;
         TinyGsmClient gsm_client_;
 
         const char* apn_          = nullptr;
