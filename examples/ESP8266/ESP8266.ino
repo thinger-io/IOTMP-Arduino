@@ -34,10 +34,10 @@ void setup() {
         out["celsius"] = 23.5;
     };
 
-    // Input resource — controls an LED
+    // Input resource — controls a GPIO
     thing["led"] = [](thinger::iotmp::input& in) {
         bool state = in["state"].get<bool>();
-        digitalWrite(LED_BUILTIN, state);
+        digitalWrite(2, state); // GPIO2 — built-in LED on most ESP8266 boards
     };
 }
 
