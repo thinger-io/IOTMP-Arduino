@@ -17,7 +17,11 @@
     "frameworks": "arduino",
     "platforms": ["espressif32", "espressif8266", "atmelavr", "atmelsam", "ststm32"],
     "dependencies": {
-        "thinger-io/iotmp-embedded": "*"
+        "iotmp-embedded": {
+            "owner": "thinger-io",
+            "name": "IOTMP-Embedded",
+            "version": "https://github.com/thinger-io/IOTMP-Embedded.git"
+        }
     },
     "build": {
         "srcFilter": ["+<src/>"],
