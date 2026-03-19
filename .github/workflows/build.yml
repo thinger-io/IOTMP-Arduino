@@ -39,7 +39,7 @@ jobs:
 
           # Copy example and its companion files (arduino_secrets.h, etc.)
           example_dir=$(dirname ${{ matrix.example }})
-          cp ${example_dir}/* /tmp/build/src/
+          find ${example_dir} -maxdepth 1 -type f -exec cp {} /tmp/build/src/ \;
           mv /tmp/build/src/*.ino /tmp/build/src/main.cpp
 
           # Link our library
