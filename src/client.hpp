@@ -64,9 +64,6 @@ inline void _thinger_log(const char* level, const char* fmt, ...) {
 
 namespace thinger::iotmp {
 
-    // Legacy alias for backward compatibility
-    using THINGER_STATE = client_state;
-
     // ----------------------------------------------------------------
     // Arduino IOTMP client.
     //
@@ -129,12 +126,6 @@ namespace thinger::iotmp {
 
         void on_disconnect() {
             disconnect();
-        }
-
-        // ----- State listener (legacy alias) -------------------------
-
-        void set_state_listener(std::function<void(client_state)> cb) {
-            set_state_callback(std::move(cb));
         }
 
         // ----- Main loop (call from Arduino loop()) -----------------
