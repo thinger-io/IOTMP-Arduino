@@ -350,12 +350,17 @@ namespace thinger::iotmp {
             out_capacity_ = 0;
         }
 
-        void flush_output() {
+        bool flush_output() {
+            bool success = true;
             if(out_size_ > 0 && out_buffer_) {
-                client_.write(out_buffer_, out_size_);
+                size_t written = client_.write(out_buffer_, out_size_);
+                success = (written == out_size_);
+                if(!success) {
+                    THINGER_LOG_ERROR("Write failed: %u/%u bytes", (unsigned)written, (unsigned)out_size_);
+                }
             }
-            // Release the buffer after flush
             free_output_buffer();
+            return success;
         }
 
         // ----- I/O helpers ------------------------------------------
