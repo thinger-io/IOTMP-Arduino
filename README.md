@@ -67,14 +67,14 @@ void loop() {
 Add to `platformio.ini`:
 
 ```ini
-lib_deps = https://github.com/thinger-io/IOTMP-Arduino.git
+lib_deps = thinger-io/IOTMP-Arduino
 ```
 
-The core dependency (IOTMP-Embedded) is installed automatically.
+The `IOTMP-Embedded` dependency is resolved automatically.
 
 ### Arduino IDE
 
-Install `IOTMP-Arduino` from the Library Manager. The core dependency is installed automatically.
+Install `IOTMP-Arduino` from the Library Manager. The `IOTMP-Embedded` dependency is resolved automatically.
 
 ## OTA (Over the Air)
 
