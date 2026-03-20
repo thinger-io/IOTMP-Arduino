@@ -67,11 +67,16 @@ namespace thinger::iotmp {
     // ----------------------------------------------------------------
     // Arduino IOTMP client.
     //
-    // Inherits all common protocol logic from iotmp_client_base via CRTP.
-    // Only contains Arduino-specific transport and connection management.
+    // Inherits all protocol and connection-lifecycle logic from
+    // iotmp_client_base via CRTP.  This class only provides the
+    // transport primitives that the base dispatches through CRTP.
     //
     // Takes an Arduino Client& for transport.  Call handle() from the
     // Arduino loop() — it is cooperative and non-blocking.
+    //
+    // Subclasses (ThingerESP32, ThingerESP8266, …) may override
+    // handle() (virtual) to add network management before delegating
+    // to the base implementation.
     // ----------------------------------------------------------------
     class arduino_client : public iotmp_client_base<arduino_client> {
     public:
@@ -84,14 +89,12 @@ namespace thinger::iotmp {
         // ----- CRTP transport implementation -------------------------
 
         bool send_bytes_impl(const void* data, size_t len) {
-            size_t written = client_.write(static_cast<const uint8_t*>(data), len);
-            return written == len;
+            return client_.write(static_cast<const uint8_t*>(data), len) == len;
         }
 
         bool recv_bytes_impl(void* buf, size_t len) {
             auto* ptr = static_cast<uint8_t*>(buf);
             size_t remaining = len;
-            unsigned long timeout_ms = 10000;
             unsigned long start = millis();
             while(remaining > 0) {
                 if(!client_.connected()) return false;
@@ -105,105 +108,41 @@ namespace thinger::iotmp {
                     remaining -= got;
                     start = millis(); // reset timeout on progress
                 } else {
-                    if(millis() - start >= timeout_ms) return false;
+                    if(millis() - start >= 10000) return false;
                     yield();
                 }
             }
             return true;
         }
 
-        bool is_connected_impl() const {
-            return client_.connected();
+        bool is_connected_impl() const { return client_.connected(); }
+        bool data_available_impl() { return client_.available() > 0; }
+        unsigned long get_millis() const { return millis(); }
+
+        // ----- CRTP connection implementation ------------------------
+
+        bool connect_impl() {
+            return client_.connect(host_, port_);
         }
 
-        // ----- Milliseconds provider (used by base for streams) ------
-
-        unsigned long get_millis() const {
-            return millis();
+        void disconnect_impl() {
+            client_.stop();
         }
 
-        // ----- Disconnect handler (called by base on DISCONNECT msg) -
-
-        void on_disconnect() {
-            disconnect();
-        }
-
-        // ----- Main loop (call from Arduino loop()) -----------------
+        // ----- Virtual handle (allows subclass override) -------------
+        //
+        // The actual lifecycle logic lives in iotmp_client_base::handle().
+        // This virtual wrapper lets WiFi/network subclasses add their
+        // own pre-checks before delegating.
 
         virtual void handle() {
-            unsigned long now = millis();
-
-            if(!connected_) {
-                if(!should_reconnect(now)) return;
-                last_connection_attempt_ = now;
-                if(!connect_socket()) {
-                    update_backoff();
-                    return;
-                }
-
-                notify_state(client_state::AUTHENTICATING);
-                if(!authenticate()) {
-                    notify_state(client_state::AUTH_FAILED);
-                    disconnect();
-                    update_backoff();
-                    return;
-                }
-                notify_state(client_state::AUTHENTICATED);
-                connected_ = true;
-                last_keepalive_ = millis();
-                reset_backoff();
-            }
-
-            // --- We are connected from here on ---
-
-            if(!is_connected_impl()) {
-                disconnect();
-                return;
-            }
-
-            // Process all available incoming data
-            while(client_.available()) {
-                if(!process_incoming()) {
-                    disconnect();
-                    return;
-                }
-            }
-
-            // Keep-alive and periodic streams
-            process_keepalive(millis());
-            check_streams();
+            iotmp_client_base::handle();
         }
 
     protected:
 
         // Transport
         Client& client_;
-
-    private:
-
-        // ----- Connection management ---------------------------------
-
-        bool connect_socket() {
-            notify_state(client_state::SOCKET_CONNECTING);
-            THINGER_LOG_INFO("Connecting to %s:%u", host_, port_);
-            bool ok = client_.connect(host_, port_);
-            if(ok) {
-                THINGER_LOG_INFO("Connected");
-                notify_state(client_state::SOCKET_CONNECTED);
-            } else {
-                THINGER_LOG_ERROR("Connection failed");
-                notify_state(client_state::SOCKET_CONNECTION_ERROR);
-            }
-            return ok;
-        }
-
-        void disconnect() {
-            THINGER_LOG_INFO("Disconnected");
-            client_.stop();
-            connected_ = false;
-            notify_state(client_state::SOCKET_DISCONNECTED);
-            clear_streams();
-        }
     };
 
 } // namespace thinger::iotmp
