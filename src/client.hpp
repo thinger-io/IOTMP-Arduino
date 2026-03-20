@@ -353,7 +353,6 @@ namespace thinger::iotmp {
         void flush_output() {
             if(out_size_ > 0 && out_buffer_) {
                 client_.write(out_buffer_, out_size_);
-                client_.flush();
             }
             // Release the buffer after flush
             free_output_buffer();
