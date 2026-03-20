@@ -454,9 +454,11 @@ namespace thinger::iotmp {
         }
 
         bool write_message(iotmp_message& msg) {
-            // Use the core encode_message which does two-pass (size, then encode)
+            // encode_message does two-pass: null_writer for size, then string_writer
+            // Result is a complete message in a single std::string — write directly
             std::string encoded = encode_message(msg);
-            return io_write(encoded.data(), encoded.size(), true);
+            size_t written = client_.write((const uint8_t*)encoded.data(), encoded.size());
+            return written == encoded.size();
         }
 
         void send_message(iotmp_message& msg) {
