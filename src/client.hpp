@@ -60,19 +60,9 @@ inline void _thinger_log(const char* level, const char* fmt, ...) {
 #include "compat.hpp"
 #include <thinger/iotmp/iotmp.hpp>
 
-#include <map>
-#include <string>
+#include <functional>
 
 namespace thinger::iotmp {
-
-    // ----------------------------------------------------------------
-    // Stream configuration stored per active stream.
-    // ----------------------------------------------------------------
-    struct stream_config {
-        const char* resource_name = nullptr;
-        unsigned long interval_ms = 0;
-        unsigned long last_sample  = 0;
-    };
 
     // ----------------------------------------------------------------
     // Connection state enum — compatible with classic library
@@ -96,29 +86,71 @@ namespace thinger::iotmp {
     // ----------------------------------------------------------------
     // Arduino IOTMP client.
     //
+    // Inherits all common protocol logic from iotmp_client_base via CRTP.
+    // Only contains Arduino-specific transport and connection management.
+    //
     // Takes an Arduino Client& for transport.  Call handle() from the
     // Arduino loop() — it is cooperative and non-blocking.
     // ----------------------------------------------------------------
-    class arduino_client {
+    class arduino_client : public iotmp_client_base<arduino_client> {
     public:
         arduino_client(Client& client, const char* user, const char* device, const char* credential)
-            : client_(client),
-              username_(user),
-              device_id_(device),
-              credential_(credential) {}
+            : iotmp_client_base(user, device, credential),
+              client_(client) {}
 
         virtual ~arduino_client() = default;
+
+        // ----- CRTP transport implementation -------------------------
+
+        bool send_bytes_impl(const void* data, size_t len) {
+            size_t written = client_.write(static_cast<const uint8_t*>(data), len);
+            return written == len;
+        }
+
+        bool recv_bytes_impl(void* buf, size_t len) {
+            auto* ptr = static_cast<uint8_t*>(buf);
+            size_t remaining = len;
+            unsigned long timeout_ms = 10000;
+            unsigned long start = millis();
+            while(remaining > 0) {
+                if(!client_.connected()) return false;
+                int avail = client_.available();
+                if(avail > 0) {
+                    size_t to_read = remaining < static_cast<size_t>(avail)
+                                     ? remaining : static_cast<size_t>(avail);
+                    int got = client_.read(ptr, to_read);
+                    if(got <= 0) return false;
+                    ptr += got;
+                    remaining -= got;
+                    start = millis(); // reset timeout on progress
+                } else {
+                    if(millis() - start >= timeout_ms) return false;
+                    yield();
+                }
+            }
+            return true;
+        }
+
+        bool is_connected_impl() const {
+            return client_.connected();
+        }
+
+        // ----- Milliseconds provider (used by base for streams) ------
+
+        unsigned long get_millis() const {
+            return millis();
+        }
+
+        // ----- Disconnect handler (called by base on DISCONNECT msg) -
+
+        void on_disconnect() {
+            disconnect();
+        }
 
         // ----- State listener ----------------------------------------
 
         void set_state_listener(std::function<void(THINGER_STATE)> listener) {
             state_listener_ = std::move(listener);
-        }
-
-        // ----- Resource registration --------------------------------
-
-        iotmp_resource& operator[](const char* name) {
-            return resources_[std::string(name)];
         }
 
         // ----- Main loop (call from Arduino loop()) -----------------
@@ -131,10 +163,14 @@ namespace thinger::iotmp {
                 THINGER_LOG_INFO("Reconnecting in %lu ms", RECONNECT_MS);
                 last_connection_attempt_ = now;
                 if(!connect_socket()) return;
+
+                notify_state(THINGER_AUTHENTICATING);
                 if(!authenticate()) {
+                    notify_state(THINGER_AUTH_FAILED);
                     disconnect();
                     return;
                 }
+                notify_state(THINGER_AUTHENTICATED);
                 state_ = AUTHENTICATED;
                 last_keepalive_ = millis();
             }
@@ -168,14 +204,13 @@ namespace thinger::iotmp {
             check_streams();
         }
 
-        // ----- Configuration ----------------------------------------
+        // ----- Connection state --------------------------------------
 
-        void set_host(const char* host, uint16_t port = 0) {
-            host_ = host;
-            if(port != 0) port_ = port;
+        bool is_connected() const {
+            return state_ == AUTHENTICATED;
         }
 
-        // ----- Server API -------------------------------------------
+        // ----- Server API --------------------------------------------
 
         bool set_property(const char* id, json_t data) {
             if(state_ != AUTHENTICATED) return false;
@@ -247,34 +282,10 @@ namespace thinger::iotmp {
             return send_and_wait_ok(msg);
         }
 
-        // ----- Manual streaming -------------------------------------
-
-        bool stream(const char* resource_name) {
-            if(state_ != AUTHENTICATED) return false;
-            auto it = resources_.find(resource_name);
-            if(it == resources_.end()) return false;
-            auto& res = it->second;
-            if(!res.stream_enabled()) return false;
-            return stream_resource(res, res.get_stream_id());
-        }
-
-        // ----- Connection state -------------------------------------
-
-        bool is_connected() const {
-            return state_ == AUTHENTICATED;
-        }
-
     protected:
 
         // Transport
         Client& client_;
-
-        // Credentials
-        const char* username_;
-        const char* device_id_;
-        const char* credential_;
-        const char* host_ = "iot.thinger.io";
-        uint16_t port_ = 25204;
 
         // Connection state
         enum state_t { DISCONNECTED, AUTHENTICATED };
@@ -282,12 +293,6 @@ namespace thinger::iotmp {
 
         // State listener
         std::function<void(THINGER_STATE)> state_listener_;
-
-        // Resources
-        std::map<std::string, iotmp_resource> resources_;
-
-        // Active streams  (stream_id -> config)
-        std::map<uint16_t, stream_config> streams_;
 
         // Timing
         unsigned long last_keepalive_ = 0;
@@ -297,90 +302,7 @@ namespace thinger::iotmp {
 
     private:
 
-        // ----- I/O helpers ------------------------------------------
-
-        bool io_read(void* buf, size_t len) {
-            auto* ptr = static_cast<uint8_t*>(buf);
-            size_t remaining = len;
-            unsigned long timeout_ms = 10000;
-            unsigned long start = millis();
-            while(remaining > 0) {
-                if(!client_.connected()) return false;
-                int avail = client_.available();
-                if(avail > 0) {
-                    size_t to_read = remaining < static_cast<size_t>(avail)
-                                     ? remaining : static_cast<size_t>(avail);
-                    int got = client_.read(ptr, to_read);
-                    if(got <= 0) return false;
-                    ptr += got;
-                    remaining -= got;
-                    start = millis(); // reset timeout on progress
-                } else {
-                    if(millis() - start >= timeout_ms) return false;
-                    yield();
-                }
-            }
-            return true;
-        }
-
-        // ----- Varint I/O -------------------------------------------
-
-        bool read_varint(uint32_t& value) {
-            value = 0;
-            uint8_t byte;
-            uint8_t bit_pos = 0;
-            do {
-                if(!io_read(&byte, 1) || bit_pos >= 32) return false;
-                value |= static_cast<uint32_t>(byte & 0x7F) << bit_pos;
-                bit_pos += 7;
-            } while(byte & 0x80);
-            return true;
-        }
-
-        // ----- Message read / write ---------------------------------
-
-        bool read_message(iotmp_message& msg) {
-            // Read message type varint
-            uint32_t msg_type = 0;
-            if(!read_varint(msg_type)) return false;
-            msg.set_message_type(static_cast<message::type>(msg_type));
-
-            // Read body size varint
-            uint32_t body_size = 0;
-            if(!read_varint(body_size)) return false;
-
-            if(body_size == 0) return true;
-
-            // Read body into buffer, then decode from memory
-            std::vector<uint8_t> body(body_size);
-            if(!io_read(body.data(), body_size)) return false;
-
-            iotmp_memory_decoder decoder(body.data(), body_size);
-            return decoder.decode(msg, body_size);
-        }
-
-        bool write_message(iotmp_message& msg) {
-            // encode_message does two-pass: null_writer for size, then string_writer
-            // Result is a complete message in a single std::string — write directly
-            std::string encoded = encode_message(msg);
-            size_t written = client_.write((const uint8_t*)encoded.data(), encoded.size());
-            return written == encoded.size();
-        }
-
-        void send_message(iotmp_message& msg) {
-            if(msg.get_message_type() != message::STREAM_DATA) {
-                THINGER_LOG_DEBUG("TX: %s (stream=%u)", msg.message_type_str(), msg.get_stream_id());
-            }
-            write_message(msg);
-        }
-
-        void send_keepalive() {
-            THINGER_LOG_DEBUG("Keep-alive sent");
-            std::string encoded = encode_message(message::KEEP_ALIVE);
-            client_.write((const uint8_t*)encoded.data(), encoded.size());
-        }
-
-        // ----- Connection -------------------------------------------
+        // ----- Connection management ---------------------------------
 
         void notify_state(THINGER_STATE state) {
             if(state_listener_) state_listener_(state);
@@ -400,310 +322,15 @@ namespace thinger::iotmp {
             return ok;
         }
 
-        bool authenticate() {
-            notify_state(THINGER_AUTHENTICATING);
-            THINGER_LOG_INFO("Authenticating as %s@%s", device_id_, username_);
-
-            iotmp_message msg(message::CONNECT);
-            msg.set_random_stream_id();
-            msg[message::field::PAYLOAD] = json_t::array({
-                json_t(username_),
-                json_t(device_id_),
-                json_t(credential_)
-            });
-
-            if(!write_message(msg)) {
-                THINGER_LOG_ERROR("Failed to send CONNECT");
-                notify_state(THINGER_AUTH_FAILED);
-                return false;
-            }
-
-            // Wait for response
-            iotmp_message response(message::RESERVED);
-            if(!read_message(response)) {
-                THINGER_LOG_ERROR("No CONNECT response");
-                notify_state(THINGER_AUTH_FAILED);
-                return false;
-            }
-
-            bool ok = response.get_message_type() == message::OK;
-            if(ok) {
-                THINGER_LOG_INFO("Authenticated!");
-                notify_state(THINGER_AUTHENTICATED);
-            } else {
-                THINGER_LOG_ERROR("Authentication failed");
-                notify_state(THINGER_AUTH_FAILED);
-            }
-            return ok;
-        }
-
         void disconnect() {
             THINGER_LOG_INFO("Disconnected");
             client_.stop();
             state_ = DISCONNECTED;
             notify_state(SOCKET_DISCONNECTED);
-            streams_.clear();
-            for(auto& [name, res] : resources_) {
-                res.set_stream_id(0);
-            }
+            clear_streams();
         }
 
-        // ----- Message handling -------------------------------------
-
-        void handle_message(iotmp_message& msg) {
-            if(msg.get_message_type() != message::STREAM_DATA) {
-                THINGER_LOG_DEBUG("RX: %s (stream=%u)", msg.message_type_str(), msg.get_stream_id());
-            }
-
-            switch(msg.get_message_type()) {
-                case message::RUN:
-                    handle_resource_request(msg);
-                    break;
-                case message::DESCRIBE:
-                    handle_describe(msg);
-                    break;
-                case message::START_STREAM:
-                    handle_start_stream(msg);
-                    break;
-                case message::STOP_STREAM:
-                    handle_stop_stream(msg);
-                    break;
-                case message::STREAM_DATA:
-                    handle_stream_data(msg);
-                    break;
-                case message::KEEP_ALIVE:
-                    break;
-                case message::DISCONNECT:
-                    disconnect();
-                    break;
-                default:
-                    break;
-            }
-        }
-
-        void handle_resource_request(iotmp_message& request) {
-            // Resource path is in RESOURCE field
-            std::string path;
-            if(request.has_field(message::field::RESOURCE)) {
-                const json_t& res_field = request[message::field::RESOURCE];
-                if(res_field.is_string()) {
-                    path = res_field.get<std::string>();
-                } else if(res_field.is_array()) {
-                    // Concatenate array elements with '/'
-                    for(size_t i = 0; i < res_field.size(); ++i) {
-                        if(i > 0) path += '/';
-                        path += res_field[i].get<std::string>();
-                    }
-                }
-            }
-
-            iotmp_resource* resource = find_resource(path);
-            iotmp_message response(request.get_stream_id(), message::OK);
-
-            if(resource) {
-                bool success = resource->run_resource(request, response);
-                if(!success) {
-                    response.set_message_type(message::ERROR);
-                }
-            } else {
-                response.set_message_type(message::ERROR);
-            }
-
-            send_message(response);
-
-            // If the resource received input, has an active stream, and echo is enabled,
-            // stream the current state so the dashboard updates
-            if(resource && request.has_payload() && resource->stream_enabled() && resource->stream_echo() &&
-               (resource->get_io_type() == iotmp_resource::input_wrapper ||
-                resource->get_io_type() == iotmp_resource::input_output_wrapper)) {
-                stream_resource(*resource, resource->get_stream_id());
-            }
-        }
-
-        void handle_describe(iotmp_message& request) {
-            iotmp_message response(request.get_stream_id(), message::OK);
-
-            // Check if asking for a specific resource or the API
-            if(request.has_field(message::field::RESOURCE)) {
-                std::string path;
-                const json_t& res_field = request[message::field::RESOURCE];
-                if(res_field.is_string()) {
-                    path = res_field.get<std::string>();
-                } else if(res_field.is_array()) {
-                    for(size_t i = 0; i < res_field.size(); ++i) {
-                        if(i > 0) path += '/';
-                        path += res_field[i].get<std::string>();
-                    }
-                }
-
-                iotmp_resource* resource = find_resource(path);
-                if(resource) {
-                    resource->describe(response);
-                } else {
-                    response.set_message_type(message::ERROR);
-                }
-            } else {
-                // Describe full API: list all resources
-                json_t& payload = response[message::field::PAYLOAD];
-                for(auto& [name, res] : resources_) {
-                    res.fill_api(payload[name]);
-                }
-            }
-
-            send_message(response);
-        }
-
-        void handle_start_stream(iotmp_message& request) {
-            std::string path;
-            if(request.has_field(message::field::RESOURCE)) {
-                const json_t& res_field = request[message::field::RESOURCE];
-                if(res_field.is_string()) {
-                    path = res_field.get<std::string>();
-                } else if(res_field.is_array()) {
-                    for(size_t i = 0; i < res_field.size(); ++i) {
-                        if(i > 0) path += '/';
-                        path += res_field[i].get<std::string>();
-                    }
-                }
-            }
-
-            uint16_t stream_id = request.get_stream_id();
-
-            iotmp_resource* resource = find_resource(path);
-            if(!resource) {
-                iotmp_message response(stream_id, message::ERROR);
-                send_message(response);
-                return;
-            }
-
-            // Set the stream id on the resource
-            resource->set_stream_id(stream_id);
-
-            // Check if there is an interval in parameters
-            unsigned long interval_ms = 0;
-            if(request.has_params()) {
-                const json_t& params = request.params();
-                if(params.is_number()) {
-                    interval_ms = params.get<uint64_t>();
-                }
-            }
-
-            // Register stream
-            stream_config cfg;
-            cfg.resource_name = nullptr;
-            cfg.interval_ms = interval_ms;
-            cfg.last_sample = millis();
-
-            // We need to store the path — find the key in resources_ map
-            for(auto& [name, res] : resources_) {
-                if(&res == resource) {
-                    cfg.resource_name = name.c_str();
-                    break;
-                }
-            }
-
-            streams_[stream_id] = cfg;
-
-            THINGER_LOG_DEBUG("Stream started: %s (id=%u)", cfg.resource_name ? cfg.resource_name : "?", stream_id);
-
-            // Send OK
-            iotmp_message response(stream_id, message::OK);
-            send_message(response);
-
-            // Send initial stream data
-            stream_resource(*resource, stream_id);
-        }
-
-        void handle_stream_data(iotmp_message& request) {
-            uint16_t stream_id = request.get_stream_id();
-
-            // Find resource by stream_id
-            auto it = streams_.find(stream_id);
-            if(it == streams_.end()) return;
-
-            iotmp_resource* resource = find_resource(it->second.resource_name);
-            if(!resource) return;
-
-            // Execute the resource with the incoming input
-            iotmp_message response(stream_id, message::STREAM_DATA);
-            resource->run_resource(request, response);
-
-            // Echo back current state
-            if(resource->stream_echo()) {
-                stream_resource(*resource, stream_id);
-            }
-        }
-
-        void handle_stop_stream(iotmp_message& request) {
-            uint16_t stream_id = request.get_stream_id();
-            THINGER_LOG_DEBUG("Stream stopped (id=%u)", stream_id);
-
-            // Find and clean up the stream
-            auto it = streams_.find(stream_id);
-            if(it != streams_.end()) {
-                // Clear the stream id on the resource
-                iotmp_resource* resource = find_resource(it->second.resource_name);
-                if(resource) {
-                    resource->set_stream_id(0);
-                }
-                streams_.erase(it);
-            }
-
-            // Send OK
-            iotmp_message response(stream_id, message::OK);
-            send_message(response);
-        }
-
-        bool stream_resource(iotmp_resource& resource, uint16_t stream_id) {
-            if(resource.get_io_type() == iotmp_resource::none ||
-               resource.get_io_type() == iotmp_resource::run) {
-                return false;
-            }
-
-            iotmp_message request(message::STREAM_DATA);
-            iotmp_message response(message::STREAM_DATA);
-            resource.run_resource(request, response);
-
-            // For input resources, the callback writes to request[PAYLOAD]
-            // For output/input_output resources, the callback writes to response[PAYLOAD]
-            auto& msg = response.has_payload() ? response : request;
-            if(msg.has_payload()) {
-                msg.set_stream_id(stream_id);
-                send_message(msg);
-            }
-            return true;
-        }
-
-        void check_streams() {
-            unsigned long now = millis();
-            for(auto& [stream_id, cfg] : streams_) {
-                if(cfg.interval_ms == 0) continue;
-                if(now - cfg.last_sample >= cfg.interval_ms) {
-                    cfg.last_sample = now;
-                    if(cfg.resource_name) {
-                        iotmp_resource* resource = find_resource(cfg.resource_name);
-                        if(resource) {
-                            stream_resource(*resource, stream_id);
-                        }
-                    }
-                }
-            }
-        }
-
-        // ----- Resource lookup --------------------------------------
-
-        iotmp_resource* find_resource(const char* path) {
-            if(!path) return nullptr;
-            return find_resource(std::string(path));
-        }
-
-        iotmp_resource* find_resource(const std::string& path) {
-            auto it = resources_.find(path);
-            if(it != resources_.end()) return &it->second;
-            return nullptr;
-        }
-
-        // ----- Blocking send + wait for OK --------------------------
+        // ----- Blocking send + wait for OK ---------------------------
 
         bool send_and_wait_ok(iotmp_message& msg) {
             uint16_t sid = msg.get_stream_id();

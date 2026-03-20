@@ -62,7 +62,7 @@ namespace thinger::iotmp {
         ThingerConsole(arduino_client& client)
             : client_(client),
               resource_(client["$console"]),
-              prompt_(client.device_id_)
+              prompt_(client.get_device_id())
         {
             tx_buffer_[CONSOLE_BUFFER_SIZE] = 0;
 
