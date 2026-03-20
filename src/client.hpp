@@ -599,8 +599,11 @@ namespace thinger::iotmp {
 
             send_message(response);
 
-            // If the resource has stream echo enabled and a stream is active
-            if(resource && resource->stream_enabled() && resource->stream_echo()) {
+            // If the resource received input, has an active stream, and echo is enabled,
+            // stream the current state so the dashboard updates
+            if(resource && request.has_payload() && resource->stream_enabled() && resource->stream_echo() &&
+               (resource->get_io_type() == iotmp_resource::input_wrapper ||
+                resource->get_io_type() == iotmp_resource::input_output_wrapper)) {
                 stream_resource(*resource, resource->get_stream_id());
             }
         }
