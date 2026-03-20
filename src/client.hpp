@@ -556,8 +556,10 @@ namespace thinger::iotmp {
                 case message::STOP_STREAM:
                     handle_stop_stream(msg);
                     break;
+                case message::STREAM_DATA:
+                    handle_stream_data(msg);
+                    break;
                 case message::KEEP_ALIVE:
-                    // Server keep-alive, nothing to do
                     break;
                 case message::DISCONNECT:
                     disconnect();
@@ -695,6 +697,26 @@ namespace thinger::iotmp {
 
             // Send initial stream data
             stream_resource(*resource, stream_id);
+        }
+
+        void handle_stream_data(iotmp_message& request) {
+            uint16_t stream_id = request.get_stream_id();
+
+            // Find resource by stream_id
+            auto it = streams_.find(stream_id);
+            if(it == streams_.end()) return;
+
+            iotmp_resource* resource = find_resource(it->second.resource_name);
+            if(!resource) return;
+
+            // Execute the resource with the incoming input
+            iotmp_message response(stream_id, message::STREAM_DATA);
+            resource->run_resource(request, response);
+
+            // Echo back current state
+            if(resource->stream_echo()) {
+                stream_resource(*resource, stream_id);
+            }
         }
 
         void handle_stop_stream(iotmp_message& request) {
