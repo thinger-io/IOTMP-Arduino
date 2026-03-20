@@ -142,144 +142,51 @@ namespace thinger::iotmp {
         virtual void handle() {
             unsigned long now = millis();
 
-            if(state_ == DISCONNECTED) {
-                if(now - last_connection_attempt_ < RECONNECT_MS) return;
-                THINGER_LOG_INFO("Reconnecting in %lu ms", RECONNECT_MS);
+            if(!connected_) {
+                if(!should_reconnect(now)) return;
                 last_connection_attempt_ = now;
-                if(!connect_socket()) return;
+                if(!connect_socket()) {
+                    update_backoff();
+                    return;
+                }
 
                 notify_state(client_state::AUTHENTICATING);
                 if(!authenticate()) {
                     notify_state(client_state::AUTH_FAILED);
                     disconnect();
+                    update_backoff();
                     return;
                 }
                 notify_state(client_state::AUTHENTICATED);
-                state_ = AUTHENTICATED;
+                connected_ = true;
                 last_keepalive_ = millis();
+                reset_backoff();
             }
 
-            // --- We are AUTHENTICATED from here on ---
+            // --- We are connected from here on ---
 
-            if(!client_.connected()) {
+            if(!is_connected_impl()) {
                 disconnect();
                 return;
             }
 
             // Process all available incoming data
             while(client_.available()) {
-                iotmp_message msg(message::RESERVED);
-                if(read_message(msg)) {
-                    handle_message(msg);
-                } else {
+                if(!process_incoming()) {
                     disconnect();
                     return;
                 }
             }
 
-            // Keep-alive
-            now = millis();
-            if(now - last_keepalive_ >= KEEPALIVE_MS) {
-                send_keepalive();
-                last_keepalive_ = now;
-            }
-
-            // Periodic streams
+            // Keep-alive and periodic streams
+            process_keepalive(millis());
             check_streams();
-        }
-
-        // ----- Connection state --------------------------------------
-
-        bool is_connected() const {
-            return state_ == AUTHENTICATED;
-        }
-
-        // ----- Server API --------------------------------------------
-
-        bool set_property(const char* id, json_t data) {
-            if(state_ != AUTHENTICATED) return false;
-            iotmp_message msg(message::RUN);
-            msg.set_random_stream_id();
-            msg[message::field::PARAMETERS] = static_cast<uint64_t>(server::SET_DEVICE_PROPERTY);
-            msg[message::field::RESOURCE] = id;
-            msg[message::field::PAYLOAD] = std::move(data);
-            return send_and_wait_ok(msg);
-        }
-
-        bool get_property(const char* id, json_t& data) {
-            if(state_ != AUTHENTICATED) return false;
-            iotmp_message msg(message::RUN);
-            msg.set_random_stream_id();
-            msg[message::field::PARAMETERS] = static_cast<uint64_t>(server::READ_DEVICE_PROPERTY);
-            msg[message::field::RESOURCE] = id;
-            uint16_t sid = msg.get_stream_id();
-            send_message(msg);
-
-            // Wait for response (blocking with timeout)
-            unsigned long start = millis();
-            while(millis() - start < 10000) {
-                if(!client_.connected()) return false;
-                if(client_.available()) {
-                    iotmp_message reply(message::RESERVED);
-                    if(!read_message(reply)) return false;
-                    if(reply.get_stream_id() == sid) {
-                        if(reply.get_message_type() == message::OK) {
-                            if(reply.has_payload()) data = std::move(reply.payload());
-                            return true;
-                        }
-                        return false;
-                    }
-                    // Not our reply — handle normally
-                    handle_message(reply);
-                }
-                yield();
-            }
-            return false;
-        }
-
-        bool write_bucket(const char* id, json_t data) {
-            if(state_ != AUTHENTICATED) return false;
-            iotmp_message msg(message::RUN);
-            msg.set_random_stream_id();
-            msg[message::field::PARAMETERS] = static_cast<uint64_t>(server::WRITE_BUCKET);
-            msg[message::field::RESOURCE] = id;
-            msg[message::field::PAYLOAD] = std::move(data);
-            return send_and_wait_ok(msg);
-        }
-
-        bool call_endpoint(const char* name) {
-            if(state_ != AUTHENTICATED) return false;
-            iotmp_message msg(message::RUN);
-            msg.set_random_stream_id();
-            msg[message::field::PARAMETERS] = static_cast<uint64_t>(server::CALL_ENDPOINT);
-            msg[message::field::RESOURCE] = name;
-            return send_and_wait_ok(msg);
-        }
-
-        bool call_endpoint(const char* name, json_t data) {
-            if(state_ != AUTHENTICATED) return false;
-            iotmp_message msg(message::RUN);
-            msg.set_random_stream_id();
-            msg[message::field::PARAMETERS] = static_cast<uint64_t>(server::CALL_ENDPOINT);
-            msg[message::field::RESOURCE] = name;
-            msg[message::field::PAYLOAD] = std::move(data);
-            return send_and_wait_ok(msg);
         }
 
     protected:
 
         // Transport
         Client& client_;
-
-        // Connection state
-        enum state_t { DISCONNECTED, AUTHENTICATED };
-        state_t state_ = DISCONNECTED;
-
-        // Timing
-        unsigned long last_keepalive_ = 0;
-        unsigned long last_connection_attempt_ = 0;
-        static constexpr unsigned long KEEPALIVE_MS = 60000;
-        static constexpr unsigned long RECONNECT_MS = 5000;
 
     private:
 
@@ -302,32 +209,9 @@ namespace thinger::iotmp {
         void disconnect() {
             THINGER_LOG_INFO("Disconnected");
             client_.stop();
-            state_ = DISCONNECTED;
+            connected_ = false;
             notify_state(client_state::SOCKET_DISCONNECTED);
             clear_streams();
-        }
-
-        // ----- Blocking send + wait for OK ---------------------------
-
-        bool send_and_wait_ok(iotmp_message& msg) {
-            uint16_t sid = msg.get_stream_id();
-            send_message(msg);
-
-            unsigned long start = millis();
-            while(millis() - start < 10000) {
-                if(!client_.connected()) return false;
-                if(client_.available()) {
-                    iotmp_message reply(message::RESERVED);
-                    if(!read_message(reply)) return false;
-                    if(reply.get_stream_id() == sid) {
-                        return reply.get_message_type() == message::OK;
-                    }
-                    // Not our reply — handle normally
-                    handle_message(reply);
-                }
-                yield();
-            }
-            return false;
         }
     };
 
