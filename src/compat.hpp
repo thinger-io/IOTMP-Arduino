@@ -31,10 +31,12 @@
 
 #undef digitalPin
 #define digitalPin(PIN) [](thinger::iotmp::input& in) { \
+    static bool state = false;                           \
     if(in.is_empty()) {                                  \
-        in = (bool)digitalRead(PIN);                     \
+        in = state;                                      \
     } else {                                             \
-        digitalWrite(PIN, (bool)in ? HIGH : LOW);        \
+        state = (bool)in;                                \
+        digitalWrite(PIN, state ? HIGH : LOW);           \
     }                                                    \
 }
 
