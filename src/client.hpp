@@ -64,24 +64,8 @@ inline void _thinger_log(const char* level, const char* fmt, ...) {
 
 namespace thinger::iotmp {
 
-    // ----------------------------------------------------------------
-    // Connection state enum — compatible with classic library
-    // ----------------------------------------------------------------
-    enum THINGER_STATE {
-        NETWORK_CONNECTING,
-        NETWORK_CONNECTED,
-        NETWORK_CONNECT_ERROR,
-        SOCKET_CONNECTING,
-        SOCKET_CONNECTED,
-        SOCKET_CONNECTION_ERROR,
-        SOCKET_DISCONNECTED,
-        SOCKET_TIMEOUT,
-        SOCKET_ERROR,
-        THINGER_AUTHENTICATING,
-        THINGER_AUTHENTICATED,
-        THINGER_AUTH_FAILED,
-        THINGER_STOP_REQUEST
-    };
+    // Legacy alias for backward compatibility
+    using THINGER_STATE = client_state;
 
     // ----------------------------------------------------------------
     // Arduino IOTMP client.
@@ -147,10 +131,10 @@ namespace thinger::iotmp {
             disconnect();
         }
 
-        // ----- State listener ----------------------------------------
+        // ----- State listener (legacy alias) -------------------------
 
-        void set_state_listener(std::function<void(THINGER_STATE)> listener) {
-            state_listener_ = std::move(listener);
+        void set_state_listener(std::function<void(client_state)> cb) {
+            set_state_callback(std::move(cb));
         }
 
         // ----- Main loop (call from Arduino loop()) -----------------
@@ -164,13 +148,13 @@ namespace thinger::iotmp {
                 last_connection_attempt_ = now;
                 if(!connect_socket()) return;
 
-                notify_state(THINGER_AUTHENTICATING);
+                notify_state(client_state::AUTHENTICATING);
                 if(!authenticate()) {
-                    notify_state(THINGER_AUTH_FAILED);
+                    notify_state(client_state::AUTH_FAILED);
                     disconnect();
                     return;
                 }
-                notify_state(THINGER_AUTHENTICATED);
+                notify_state(client_state::AUTHENTICATED);
                 state_ = AUTHENTICATED;
                 last_keepalive_ = millis();
             }
@@ -291,9 +275,6 @@ namespace thinger::iotmp {
         enum state_t { DISCONNECTED, AUTHENTICATED };
         state_t state_ = DISCONNECTED;
 
-        // State listener
-        std::function<void(THINGER_STATE)> state_listener_;
-
         // Timing
         unsigned long last_keepalive_ = 0;
         unsigned long last_connection_attempt_ = 0;
@@ -304,20 +285,16 @@ namespace thinger::iotmp {
 
         // ----- Connection management ---------------------------------
 
-        void notify_state(THINGER_STATE state) {
-            if(state_listener_) state_listener_(state);
-        }
-
         bool connect_socket() {
-            notify_state(SOCKET_CONNECTING);
+            notify_state(client_state::SOCKET_CONNECTING);
             THINGER_LOG_INFO("Connecting to %s:%u", host_, port_);
             bool ok = client_.connect(host_, port_);
             if(ok) {
                 THINGER_LOG_INFO("Connected");
-                notify_state(SOCKET_CONNECTED);
+                notify_state(client_state::SOCKET_CONNECTED);
             } else {
                 THINGER_LOG_ERROR("Connection failed");
-                notify_state(SOCKET_CONNECTION_ERROR);
+                notify_state(client_state::SOCKET_CONNECTION_ERROR);
             }
             return ok;
         }
@@ -326,7 +303,7 @@ namespace thinger::iotmp {
             THINGER_LOG_INFO("Disconnected");
             client_.stop();
             state_ = DISCONNECTED;
-            notify_state(SOCKET_DISCONNECTED);
+            notify_state(client_state::SOCKET_DISCONNECTED);
             clear_streams();
         }
 
