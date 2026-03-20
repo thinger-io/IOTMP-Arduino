@@ -743,17 +743,22 @@ namespace thinger::iotmp {
         }
 
         bool stream_resource(iotmp_resource& resource, uint16_t stream_id) {
-            if(resource.get_io_type() != iotmp_resource::output_wrapper &&
-               resource.get_io_type() != iotmp_resource::input_output_wrapper) {
+            if(resource.get_io_type() == iotmp_resource::none ||
+               resource.get_io_type() == iotmp_resource::run) {
                 return false;
             }
 
-            iotmp_message dummy_request(stream_id, message::STREAM_DATA);
-            iotmp_message stream_msg(stream_id, message::STREAM_DATA);
+            iotmp_message request(message::STREAM_DATA);
+            iotmp_message response(message::STREAM_DATA);
+            resource.run_resource(request, response);
 
-            resource.run_resource(dummy_request, stream_msg);
-
-            send_message(stream_msg);
+            // For input resources, the callback writes to request[PAYLOAD]
+            // For output/input_output resources, the callback writes to response[PAYLOAD]
+            auto& msg = response.has_payload() ? response : request;
+            if(msg.has_payload()) {
+                msg.set_stream_id(stream_id);
+                send_message(msg);
+            }
             return true;
         }
 

@@ -30,12 +30,12 @@
 // These use Arduino-specific functions: digitalRead, digitalWrite, analogRead
 
 #undef digitalPin
-#define digitalPin(PIN) [](thinger::iotmp::input& in, thinger::iotmp::output& out) { \
-    if(in.is_empty()) {                                                               \
-        out = (bool)digitalRead(PIN);                                                 \
-    } else {                                                                          \
-        digitalWrite(PIN, (bool)in ? HIGH : LOW);                                     \
-    }                                                                                 \
+#define digitalPin(PIN) [](thinger::iotmp::input& in) { \
+    if(in.is_empty()) {                                  \
+        in = (bool)digitalRead(PIN);                     \
+    } else {                                             \
+        digitalWrite(PIN, (bool)in ? HIGH : LOW);        \
+    }                                                    \
 }
 
 #undef analogPin
