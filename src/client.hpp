@@ -66,42 +66,6 @@ inline void _thinger_log(const char* level, const char* fmt, ...) {
 namespace thinger::iotmp {
 
     // ----------------------------------------------------------------
-    // Writer adapter that buffers small writes and flushes them to an
-    // Arduino Client in a single TCP write.  This is critical because
-    // the encoder emits many tiny fragments (varint bytes, tags).
-    // ----------------------------------------------------------------
-    class buffered_writer {
-    public:
-        buffered_writer(Client& client, uint8_t*& buf, size_t& size, size_t& capacity)
-            : client_(client), buf_(buf), size_(size), capacity_(capacity) {}
-
-        bool write(const void* data, size_t len) {
-            if(size_ + len > capacity_) {
-                size_t new_cap = capacity_;
-                while(new_cap < size_ + len) {
-                    new_cap += GROW;
-                }
-                auto* p = static_cast<uint8_t*>(realloc(buf_, new_cap));
-                if(!p) return false;
-                buf_ = p;
-                capacity_ = new_cap;
-            }
-            memcpy(buf_ + size_, data, len);
-            size_ += len;
-            return true;
-        }
-
-        size_t bytes_written() const { return size_; }
-
-    private:
-        Client& client_;
-        uint8_t*& buf_;
-        size_t& size_;
-        size_t& capacity_;
-        static constexpr size_t GROW = 64;
-    };
-
-    // ----------------------------------------------------------------
     // Stream configuration stored per active stream.
     // ----------------------------------------------------------------
     struct stream_config {
@@ -143,9 +107,7 @@ namespace thinger::iotmp {
               device_id_(device),
               credential_(credential) {}
 
-        virtual ~arduino_client() {
-            free_output_buffer();
-        }
+        virtual ~arduino_client() = default;
 
         // ----- State listener ----------------------------------------
 
@@ -335,34 +297,6 @@ namespace thinger::iotmp {
 
     private:
 
-        // ----- Output buffer for write coalescing -------------------
-
-        uint8_t* out_buffer_   = nullptr;
-        size_t   out_size_     = 0;
-        size_t   out_capacity_ = 0;
-
-        void free_output_buffer() {
-            if(out_buffer_) {
-                free(out_buffer_);
-                out_buffer_ = nullptr;
-            }
-            out_size_ = 0;
-            out_capacity_ = 0;
-        }
-
-        bool flush_output() {
-            bool success = true;
-            if(out_size_ > 0 && out_buffer_) {
-                size_t written = client_.write(out_buffer_, out_size_);
-                success = (written == out_size_);
-                if(!success) {
-                    THINGER_LOG_ERROR("Write failed: %u/%u bytes", (unsigned)written, (unsigned)out_size_);
-                }
-            }
-            free_output_buffer();
-            return success;
-        }
-
         // ----- I/O helpers ------------------------------------------
 
         bool io_read(void* buf, size_t len) {
@@ -389,24 +323,6 @@ namespace thinger::iotmp {
             return true;
         }
 
-        bool io_write(const void* buf, size_t len, bool flush_flag = false) {
-            // Accumulate in output buffer
-            if(len > 0) {
-                if(out_size_ + len > out_capacity_) {
-                    size_t new_cap = out_capacity_;
-                    while(new_cap < out_size_ + len) new_cap += 64;
-                    auto* p = static_cast<uint8_t*>(realloc(out_buffer_, new_cap));
-                    if(!p) return false;
-                    out_buffer_ = p;
-                    out_capacity_ = new_cap;
-                }
-                memcpy(out_buffer_ + out_size_, buf, len);
-                out_size_ += len;
-            }
-            if(flush_flag) flush_output();
-            return true;
-        }
-
         // ----- Varint I/O -------------------------------------------
 
         bool read_varint(uint32_t& value) {
@@ -418,16 +334,6 @@ namespace thinger::iotmp {
                 value |= static_cast<uint32_t>(byte & 0x7F) << bit_pos;
                 bit_pos += 7;
             } while(byte & 0x80);
-            return true;
-        }
-
-        bool write_varint(uint32_t value) {
-            do {
-                uint8_t byte = value & 0x7F;
-                value >>= 7;
-                if(value > 0) byte |= 0x80;
-                if(!io_write(&byte, 1)) return false;
-            } while(value > 0);
             return true;
         }
 
@@ -471,7 +377,7 @@ namespace thinger::iotmp {
         void send_keepalive() {
             THINGER_LOG_DEBUG("Keep-alive sent");
             std::string encoded = encode_message(message::KEEP_ALIVE);
-            io_write(encoded.data(), encoded.size(), true);
+            client_.write((const uint8_t*)encoded.data(), encoded.size());
         }
 
         // ----- Connection -------------------------------------------
